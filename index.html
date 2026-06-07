@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALIGN.AI - 實境數據聯動版</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3"></script>
+
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #1c1c1e; display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; margin: 0; color: #f2f2f7;
+        }
+
+        .mobile-frame {
+            width: 375px; height: 812px; background-color: #000000; border-radius: 40px;
+            border: 8px solid #2c2c2e; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            overflow: hidden; display: flex; flex-direction: column; position: relative;
+        }
+
+        .header {
+            padding: 35px 20px 10px; border-bottom: 1px solid #38383a;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            background-color: #1c1c1e; z-index: 20;
+        }
+        .header h1 { margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 1px; }
+        .conn-status { font-size: 11px; color: #34c759; display: flex; align-items: center; gap: 5px; }
+        .conn-status::before { content: ""; display: inline-block; width: 6px; height: 6px; background: #34c759; border-radius: 50%; }
+
+        /* ====== 雙分頁系統 ====== */
+        .tab-content { flex: 1; overflow-y: auto; display: none; flex-direction: column; background: #000; }
+        .tab-content.active { display: flex; }
+        
+        .bottom-nav {
+            display: flex; background: #1c1c1e; border-top: 1px solid #38383a;
+            padding-bottom: 15px; padding-top: 10px; z-index: 20;
+        }
+        .nav-item { flex: 1; text-align: center; color: #8e8e93; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+        .nav-item.active { color: #0a84ff; }
+        .nav-icon { font-size: 18px; }
+
+        /* ====== 視覺舞台 ====== */
+        .visual-stage {
+            height: 330px; position: relative; background: #1c1c1e;
+            border-bottom: 1px solid #38383a; overflow: hidden; z-index: 10;
+        }
+        
+        /* 修改 1：相機變成懸浮的子母畫面 (PiP) */
+        .webcam-wrapper {
+            position: absolute; top: 15px; left: 15px; width: 100px; height: 133px;
+            background: #000; border-radius: 12px; border: 2px solid #38383a;
+            overflow: hidden; z-index: 15; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            display: none; /* 啟動後顯示 */
+        }
+        .webcam-label {
+            position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.6);
+            padding: 2px 6px; border-radius: 6px; font-size: 9px; color: #34c759; z-index: 20; font-weight: bold;
+        }
+        #webcam-video, #webcam-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; transform: scaleX(-1);
+        }
+
+        /* 全息 HUD 九宮格地圖 */
+        .holo-matrix {
+            position: absolute; top: 15px; right: 15px; width: 65px; height: 65px;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px;
+            background: rgba(28, 28, 30, 0.75); border: 1px solid #38383a; border-radius: 12px;
+            transform-style: preserve-3d; transform: perspective(300px) rotateX(15deg) rotateY(-15deg);
+            opacity: 0; transition: opacity 0.4s; z-index: 15;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 10px rgba(10,132,255,0.1);
+        }
+        .holo-cell { background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.3); border-radius: 3px; transition: 0.3s; }
+        .holo-cell.alert { background: rgba(255, 69, 58, 0.6); box-shadow: 0 0 10px rgba(255, 69, 58, 0.8); border-color: #ff453a; transform: translateZ(5px); }
+
+        /* 椅子結構 (往右移避免與相機重疊) */
+        .chair-group { position: absolute; bottom: 85px; left: 160px; transition: transform 0.3s ease; z-index: 10; }
+        .chair-back-wrapper { position: absolute; bottom: 0; left: -12px; width: 30px; height: 170px; transform-origin: bottom center; transition: transform 0.4s; z-index: 2; }
+        .chair-headrest { position: absolute; bottom: 145px; left: -3px; width: 35px; height: 25px; background-color: #e0d5c1; border-radius: 12px; border: 3px solid #f4f4f5; z-index: 1; transition: transform 0.3s; }
+        .chair-lumbar { position: absolute; bottom: 15px; left: 2px; width: 26px; height: 45px; background-color: #d1c5b1; border-radius: 8px; z-index: 3; transition: transform 0.3s; transform-origin: left center; }
+        .chair-back { position: absolute; bottom: 0; left: 0; width: 30px; height: 140px; background-color: #e0d5c1; border-radius: 12px; border: 4px solid #f4f4f5; border-right: none; box-shadow: inset -5px 0 10px rgba(0,0,0,0.05); }
+        .chair-armrest { position: absolute; bottom: 50px; left: 20px; width: 40px; height: 8px; background-color: #d1d1d6; border-radius: 4px; z-index: 4; }
+        .chair-armrest-support { position: absolute; bottom: 20px; left: 25px; width: 8px; height: 35px; background-color: #f4f4f5; z-index: 3; }
+        .chair-seat { position: absolute; bottom: 0; left: 0; width: 125px; height: 25px; background: linear-gradient(to bottom, #e0d5c1 60%, #f4f4f5 60%); border-radius: 12px; z-index: 2; }
+        .chair-leg-main { position: absolute; top: 25px; left: 55px; width: 14px; height: 50px; background: linear-gradient(to right, #aeaeb2, #d1d1d6); transition: height 0.3s; z-index: 1; }
+        .chair-base { position: absolute; top: 75px; left: 20px; width: 85px; height: 12px; background-color: #8e8e93; border-radius: 6px; clip-path: polygon(10% 0, 90% 0, 100% 100%, 0% 100%); z-index: 2; transition: top 0.3s; }
+        .chair-wheel { position: absolute; top: 85px; left: 25px; width: 12px; height: 12px; background-color: #38383a; border-radius: 50%; z-index: 1; transition: top 0.3s; box-shadow: 50px 0 0 #38383a; }
+
+        /* 氣囊與面板 */
+        .smart-zones { position: absolute; bottom: 25px; left: 10px; width: 105px; height: 20px; display: flex; gap: 3px; opacity: 0; z-index: 3; transition: opacity 0.3s; align-items: flex-end; }
+        .zone-bubble { flex: 1; background: linear-gradient(to top, rgba(10,132,255,0.9), rgba(10,132,255,0.4)); border-radius: 4px 4px 0 0; transform-origin: bottom; transform: scaleY(0); transition: transform 0.4s; }
+        .physical-panel { position: absolute; bottom: -5px; left: 35px; width: 80px; height: 24px; background: linear-gradient(145deg, #2c2c2e, #18181a); border-radius: 6px; z-index: 6; display: flex; justify-content: space-evenly; align-items: center; padding: 0 4px; border: 1px solid #48484a; }
+        .panel-btn { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(145deg, #48484a, #2c2c2e); box-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+
+        /* 修改 2：強制隱藏原本的假人 CSS */
+        .person-group { display: none !important; }
+
+        /* ====== UI 區塊 ====== */
+        .controls-scroll { padding: 15px 20px; display: flex; flex-direction: column; gap: 15px; }
+        .control-group { background: #1c1c1e; border-radius: 16px; padding: 16px; border: 1px solid #2c2c2e; }
+        .control-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .control-title { font-size: 14px; font-weight: 600; color: #fff; }
+        .control-val-display { font-size: 13px; color: #0a84ff; font-weight: 600; font-variant-numeric: tabular-nums; }
+        
+        .mode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 5px; }
+        .mode-btn { background: #2c2c2e; border: 1px solid #38383a; color: #e5e5ea; padding: 10px 0; border-radius: 8px; font-size: 12px; cursor: pointer; transition: 0.2s; }
+        .mode-btn.active { background: #0a84ff; color: #fff; border-color: #0a84ff; box-shadow: 0 4px 10px rgba(10, 132, 255, 0.3); }
+
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 8px 0 15px; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; background: #38383a; border-radius: 3px; }
+        input[type=range]::-webkit-slider-thumb { height: 20px; width: 20px; border-radius: 50%; background: #ffffff; cursor: pointer; -webkit-appearance: none; margin-top: -7px; }
+
+        .system-alert-box { background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.3); border-radius: 12px; padding: 12px; font-size: 13px; color: #0a84ff; text-align: center; font-weight: 500; transition: 0.3s; margin-top: 5px; }
+        .system-alert-box.alert { background: rgba(255, 69, 58, 0.1); border-color: rgba(255, 69, 58, 0.3); color: #ff453a; }
+
+        .btn-ai-start { width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 14px; font-weight: bold; background: linear-gradient(135deg, #0a84ff, #5e5ce6); color: #fff; cursor: pointer; box-shadow: 0 4px 15px rgba(10, 132, 255, 0.4); transition: 0.2s; }
+        .btn-ai-start.running { background: rgba(52, 199, 89, 0.2); color: #34c759; box-shadow: none; border: 1px solid #34c759; }
+
+        /* ====== 數據面板 ====== */
+        .data-dashboard { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .score-card { background: linear-gradient(135deg, #2c2c2e, #1c1c1e); border-radius: 20px; padding: 25px; text-align: center; border: 1px solid #38383a; }
+        .score-circle { width: 100px; height: 100px; border-radius: 50%; border: 8px solid #34c759; margin: 0 auto 15px; display: flex; justify-content: center; align-items: center; font-size: 36px; font-weight: 700; color: #34c759; transition: color 0.3s, border-color 0.3s; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .stat-box { background: #1c1c1e; padding: 15px; border-radius: 16px; border: 1px solid #2c2c2e; }
+        .stat-label { font-size: 12px; color: #8e8e93; margin-bottom: 5px; }
+        .stat-val { font-size: 20px; font-weight: 600; color: #fff; }
+        .stat-val span { font-size: 12px; color: #8e8e93; }
+    </style>
+</head>
+<body>
+
+<div class="mobile-frame">
+    <div class="header">
+        <h1>ALIGN<span style="color:#0a84ff">.AI</span></h1>
+        <div class="conn-status" id="headerStatus">藍牙待命</div>
+    </div>
+
+    <div class="visual-stage">
+        
+        <div class="webcam-wrapper" id="webcam-wrapper">
+            <div class="webcam-label">AI Vision</div>
+            <video id="webcam-video" playsinline autoplay muted></video>
+            <canvas id="webcam-canvas"></canvas>
+        </div>
+        
+        <div class="holo-matrix" id="holoMatrix">
+            <div class="holo-cell" id="hc1"></div><div class="holo-cell" id="hc2"></div><div class="holo-cell" id="hc3"></div>
+            <div class="holo-cell" id="hc4"></div><div class="holo-cell" id="hc5"></div><div class="holo-cell" id="hc6"></div>
+            <div class="holo-cell" id="hc7"></div><div class="holo-cell" id="hc8"></div><div class="holo-cell" id="hc9"></div>
+        </div>
+
+        <div class="chair-group" id="chairGroup">
+            <div class="chair-back-wrapper" id="chairBackWrapper">
+                <div class="chair-headrest" id="chairHeadrest"></div>
+                <div class="chair-lumbar" id="chairLumbar"></div>
+                <div class="chair-back" id="chairBack"></div>
+            </div>
+            <div class="chair-armrest-support"></div><div class="chair-armrest"></div>
+            <div class="chair-seat" id="chairSeat">
+                <div class="smart-zones" id="smartZones">
+                    <div class="zone-bubble" id="zb1"></div><div class="zone-bubble" id="zb2"></div>
+                    <div class="zone-bubble" id="zb3"></div><div class="zone-bubble" id="zb4"></div>
+                    <div class="zone-bubble" id="zb5"></div>
+                </div>
+                <div class="physical-panel">
+                    <div class="panel-btn"></div><div class="panel-btn"></div><div class="panel-btn"></div>
+                </div>
+            </div>
+            <div class="chair-leg-main" id="chairLeg"></div>
+            <div class="chair-base" id="chairBase"></div>
+            <div class="chair-wheel" id="chairWheel"></div>
+        </div>
+    </div>
+
+    <div id="tab-control" class="tab-content active">
+        <div class="controls-scroll">
+            <div class="system-alert-box" id="sysAlert">系統平衡待機中 | 自動感測體態</div>
+
+            <div class="control-group" style="padding-bottom: 12px; border-color: rgba(10, 132, 255, 0.3);">
+                <div class="control-header" style="margin-bottom: 12px;">
+                    <span class="control-title">👁️ 真人視覺體態聯動</span>
+                    <span class="control-val-display" id="aiStatusText" style="color: #8e8e93;">已關閉</span>
+                </div>
+                <button class="btn-ai-start" id="btnStartAI" onclick="initAIVision()">啟動相機與動態補償</button>
+            </div>
+
+            <div class="control-group">
+                <div class="control-header"><span class="control-title">椅背傾仰角度</span><span class="control-val-display" id="angleVal">95°</span></div>
+                <input type="range" min="90" max="135" value="95" id="angleSlider" oninput="updateControls()">
+                <div class="control-header"><span class="control-title">動態腰靠深度</span><span class="control-val-display" id="lumbarVal">40%</span></div>
+                <input type="range" min="0" max="100" value="40" id="lumbarSlider" oninput="updateControls()">
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-data" class="tab-content">
+        <div class="data-dashboard">
+            <div class="score-card">
+                <div class="score-title" style="margin-bottom: 15px;">即時健康體態評分</div>
+                <div class="score-circle" id="scoreCircle">100</div>
+                <div style="font-size: 13px; color: #8e8e93;">基於 AI 即時判讀</div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">局部氣囊介入</div>
+                    <div class="stat-val" style="color: #0a84ff;" id="interveneCount">0 <span>次</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">當前姿態分析</div>
+                    <div class="stat-val" style="font-size: 16px;" id="currentPostureLabel">標準居中</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" id="nav-control" onclick="switchTab('control')"><span class="nav-icon">🎛️</span><span>動態控制</span></div>
+        <div class="nav-item" id="nav-data" onclick="switchTab('data')"><span class="nav-icon">📊</span><span>即時數據</span></div>
+    </div>
+</div>
+
+<script>
+    // ====== 聲音引擎 ======
+    const SoundEngine = {
+        ctx: null,
+        init: function() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); },
+        playTone: function(freq, type, duration, vol) { if (!this.ctx) return; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime); gain.gain.setValueAtTime(vol, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + duration); },
+        alert: function() { this.init(); this.playTone(400, 'sawtooth', 0.2, 0.05); setTimeout(()=>this.playTone(400, 'sawtooth', 0.2, 0.05), 300); },
+        success: function() { this.init(); this.playTone(523.25, 'sine', 0.4, 0.05); this.playTone(659.25, 'sine', 0.4, 0.05); }
+    };
+    document.body.addEventListener('click', () => { SoundEngine.init(); }, { once: true });
+
+    // ====== UI 基礎邏輯 ======
+    const angleSlider = document.getElementById('angleSlider');
+    const lumbarSlider = document.getElementById('lumbarSlider');
+    const chairBackWrapper = document.getElementById('chairBackWrapper');
+    const chairLumbar = document.getElementById('chairLumbar');
+    
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-content, .nav-item').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById('nav-' + tab).classList.add('active');
+    }
+
+    function updateControls() {
+        let angle = angleSlider.value;
+        document.getElementById('angleVal').innerText = angle + '°';
+        chairBackWrapper.style.transform = `rotate(-${angle - 90}deg)`;
+        
+        let lumbar = lumbarSlider.value;
+        document.getElementById('lumbarVal').innerText = lumbar + '%';
+        if (!isAirbagActive) chairLumbar.style.transform = `scaleX(${1 + (lumbar / 100) * 0.8})`;
+    }
+
+    // ====== AI 數據聯動核心狀態 ======
+    let currentScore = 100;
+    let interveneCount = 0;
+    let badPostureTimer = 0;
+    let isAirbagActive = false;
+
+    const sysAlert = document.getElementById('sysAlert');
+    const holoMatrix = document.getElementById('holoMatrix');
+    const smartZones = document.getElementById('smartZones');
+    const scoreCircle = document.getElementById('scoreCircle');
+
+    // 負責處理分數與 UI 動態變化的引擎
+    function syncSystemData(postureState) {
+        if (postureState !== 'normal') {
+            // 扣分機制
+            currentScore = Math.max(0, currentScore - 0.2);
+            badPostureTimer++;
+            
+            // 延遲確認 (防抖動)：超過 15 幀 (約0.5秒) 才啟動椅子作動
+            if (!isAirbagActive && badPostureTimer > 15) {
+                activateAirbag(postureState);
+            }
+        } else {
+            // 加分恢復機制
+            currentScore = Math.min(100, currentScore + 0.1);
+            badPostureTimer = 0;
+            
+            if (isAirbagActive) deactivateAirbag();
+        }
+
+        // 更新分數與顏色
+        let roundedScore = Math.round(currentScore);
+        scoreCircle.innerText = roundedScore;
+        if (roundedScore < 60) {
+            scoreCircle.style.color = "#ff453a"; scoreCircle.style.borderColor = "#ff453a";
+        } else if (roundedScore < 85) {
+            scoreCircle.style.color = "#ff9f0a"; scoreCircle.style.borderColor = "#ff9f0a";
+        } else {
+            scoreCircle.style.color = "#34c759"; scoreCircle.style.borderColor = "#34c759";
+        }
+    }
+
+    // 啟動氣囊與 HUD 警告
+    function activateAirbag(state) {
+        isAirbagActive = true;
+        SoundEngine.alert();
+        holoMatrix.style.opacity = '1';
+        smartZones.style.opacity = '1';
+        
+        let label = "標準";
+        
+        if (state === 'tilt-right') {
+            label = "重心嚴重右傾";
+            sysAlert.innerText = "⚠ 偵測到右傾，右側氣囊加壓補償中";
+            document.getElementById('hc6').classList.add('alert'); document.getElementById('hc9').classList.add('alert');
+            document.getElementById('zb4').style.transform = "scaleY(1.5)"; document.getElementById('zb5').style.transform = "scaleY(1.8)";
+        } else if (state === 'tilt-left') {
+            label = "重心嚴重左傾";
+            sysAlert.innerText = "⚠ 偵測到左傾，左側氣囊加壓補償中";
+            document.getElementById('hc4').classList.add('alert'); document.getElementById('hc7').classList.add('alert');
+            document.getElementById('zb1').style.transform = "scaleY(1.8)"; document.getElementById('zb2').style.transform = "scaleY(1.5)";
+        } else if (state === 'forward') {
+            label = "烏龜頸/駝背";
+            sysAlert.innerText = "⚠ 骨盆前傾，腰靠主動推移支撐中";
+            document.getElementById('hc2').classList.add('alert');
+            chairLumbar.style.transform = "scaleX(1.8)"; // 腰靠往前推
+        }
+        
+        sysAlert.classList.add('alert');
+        document.getElementById('currentPostureLabel').innerText = label;
+        document.getElementById('currentPostureLabel').style.color = "#ff453a";
+        
+        interveneCount++;
+        document.getElementById('interveneCount').innerHTML = interveneCount + " <span>次</span>";
+    }
+
+    // 恢復正常收合氣囊
+    function deactivateAirbag() {
+        isAirbagActive = false;
+        SoundEngine.success();
+        
+        sysAlert.innerText = "系統平衡待機中 | 自動感測體態";
+        sysAlert.classList.remove('alert');
+        document.getElementById('currentPostureLabel').innerText = "標準居中";
+        document.getElementById('currentPostureLabel').style.color = "#fff";
+        
+        holoMatrix.style.opacity = '0';
+        smartZones.style.opacity = '0';
+        
+        // 移除 HUD 紅燈與降下氣囊
+        for(let i=1; i<=9; i++) document.getElementById('hc'+i).classList.remove('alert');
+        for(let i=1; i<=5; i++) document.getElementById('zb'+i).style.transform = "scaleY(0)";
+        
+        updateControls(); // 恢復使用者原本設定的腰靠深度
+    }
+
+    // ====== AI 攝影機邏輯 ======
+    const video = document.getElementById('webcam-video');
+    const canvas = document.getElementById('webcam-canvas');
+    const ctx = canvas.getContext('2d');
+    let detector, isDetecting = false;
+
+    async function initAIVision() {
+        if(isDetecting) return;
+        const btn = document.getElementById('btnStartAI');
+        btn.innerText = "⏳ 權限讀取中..."; btn.disabled = true;
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            video.srcObject = stream;
+            document.getElementById('webcam-wrapper').style.display = 'block'; // 顯示子母畫面
+            
+            await new Promise((res) => {
+                video.onloadedmetadata = () => { video.play().then(() => {
+                    video.width = video.videoWidth; video.height = video.videoHeight;
+                    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                    res();
+                });};
+            });
+
+            await tf.ready();
+            detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING });
+
+            isDetecting = true;
+            btn.innerText = "✅ AI 視覺聯動中"; btn.classList.add("running");
+            document.getElementById('aiStatusText').innerText = "即時監控中";
+            
+            detectPose();
+        } catch (error) {
+            console.error(error); alert("無法存取相機！"); btn.innerText = "❌ 啟動失敗"; btn.disabled = false;
+        }
+    }
+
+    async function detectPose() {
+        if (!isDetecting) return;
+        const poses = await detector.estimatePoses(video);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (poses.length > 0) {
+            const keypoints = poses[0].keypoints;
+            drawSkeleton(keypoints);
+            analyzePosture(keypoints);
+        }
+        requestAnimationFrame(detectPose);
+    }
+
+    function drawSkeleton(keypoints) {
+        const adjacent = poseDetection.util.getAdjacentPairs(poseDetection.SupportedModels.MoveNet);
+        adjacent.forEach((pair) => {
+            const p1 = keypoints[pair[0]], p2 = keypoints[pair[1]];
+            if (p1.score > 0.3 && p2.score > 0.3) {
+                ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                ctx.lineWidth = 4; ctx.strokeStyle = '#0a84ff'; ctx.stroke();
+            }
+        });
+        keypoints.forEach(p => {
+            if (p.score > 0.3) { ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 2*Math.PI); ctx.fillStyle = '#fff'; ctx.fill(); }
+        });
+    }
+
+    function analyzePosture(keypoints) {
+        const nose = keypoints.find(k => k.name === 'nose');
+        const lShoulder = keypoints.find(k => k.name === 'left_shoulder');
+        const rShoulder = keypoints.find(k => k.name === 'right_shoulder');
+
+        if (nose && lShoulder && rShoulder && nose.score > 0.3 && lShoulder.score > 0.3 && rShoulder.score > 0.3) {
+            // 影像已鏡像，畫面左肩 = 使用者右肩
+            const tiltDiff = lShoulder.y - rShoulder.y; 
+            const neckDistance = ((lShoulder.y + rShoulder.y) / 2) - nose.y;
+
+            let postureState = 'normal';
+
+            // 判斷方向
+            if (tiltDiff > 25) {
+                postureState = 'tilt-right'; 
+            } else if (tiltDiff < -25) {
+                postureState = 'tilt-left';  
+            } else if (neckDistance < 50) {
+                postureState = 'forward';    
+            }
+
+            syncSystemData(postureState);
+        }
+    }
+</script>
+
+</body>
+</html>
