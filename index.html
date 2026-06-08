@@ -2,167 +2,193 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALIGN.AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ALIGN.AI - 自訂字體與設置版</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <style>
+        /* ====== 自訂字體載入 ====== */
+        @font-face {
+            font-family: 'JF-OpenHuninn';
+            src: url('jf-openhuninn-2.0.woff2') format('woff2');
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'ChenYuluoyan';
+            src: url('ChenYuluoyan-Thin-Monospaced.woff2') format('woff2');
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Iansui';
+            src: url('Iansui094-Regular.woff2') format('woff2');
+            font-display: swap;
+        }
+
+        /* ====== 核心變數系統 ====== */
+        :root {
+            /* 全域字體變數，預設為系統字體 */
+            --main-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            
+            --bg-main: #1c1c1e;
+            --bg-card: #2c2c2e;
+            --bg-stage: #18181a;
+            --text-main: #f2f2f7;
+            --text-sub: #8e8e93;
+            --border-color: #38383a;
+            --primary: #0a84ff; 
+            --primary-glow: rgba(10, 132, 255, 0.3);
+            --danger: #ff453a;
+            --warning: #ff9f0a;
+            --success: #34c759;
+            --chair-base: #e0d5c1;
+        }
+
+        body.light-mode {
+            --bg-main: #f2f2f7;
+            --bg-card: #ffffff;
+            --bg-stage: #e5e5ea;
+            --text-main: #1c1c1e;
+            --text-sub: #6e6e73;
+            --border-color: #d1d1d6;
+            --chair-base: #d1c5b1;
+        }
+
+        body.theme-green { --primary: #34c759; --primary-glow: rgba(52, 199, 89, 0.3); }
+        body.theme-purple { --primary: #af52de; --primary-glow: rgba(175, 82, 222, 0.3); }
+
+        /* ====== 基礎重置 ====== */
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #1c1c1e; display: flex; justify-content: center; align-items: center; 
-            min-height: 100vh; margin: 0; color: #f2f2f7;
+            font-family: var(--main-font); /* 套用全域字體變數 */
+            background-color: #000; display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; margin: 0; color: var(--text-main); transition: background-color 0.3s;
         }
 
         ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; margin: 10px 0; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
-        * { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transparent; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
 
         .mobile-frame {
-            width: 375px; height: 812px; background-color: #000000; border-radius: 40px;
+            width: 375px; height: 812px; background-color: var(--bg-main); border-radius: 40px;
             border: 8px solid #2c2c2e; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
             overflow: hidden; display: flex; flex-direction: column; position: relative;
+            transition: all 0.3s ease;
         }
 
-        /* ====== 開場登入畫面 ====== */
-        .login-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center;
-            transition: opacity 0.5s ease;
+        @media (max-width: 480px) {
+            body { background-color: var(--bg-main); }
+            .mobile-frame { width: 100vw; height: 100vh; border-radius: 0; border: none; box-shadow: none; }
         }
-        .login-card {
-            background: rgba(28, 28, 30, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px;
-            padding: 35px 25px; width: 75%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-        }
-        .skip-btn {
-            background: transparent; color: #8e8e93; border: none; font-size: 13px; font-weight: 500;
-            text-decoration: underline; cursor: pointer; margin-top: 20px; transition: color 0.2s;
-        }
-        .skip-btn:hover { color: #fff; }
 
-        /* ====== 標題與時鐘 ====== */
-        .header {
-            padding: 35px 20px 10px; border-bottom: 1px solid #38383a;
-            display: flex; justify-content: space-between; align-items: flex-end;
-            background-color: #1c1c1e; z-index: 20; flex-shrink: 0;
-        }
+        /* ====== UI 共通組件 ====== */
+        .header { padding: 35px 20px 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-end; background-color: var(--bg-main); z-index: 20; }
         .brand-title { display: flex; align-items: center; gap: 8px; }
-        .brand-title img { height: 24px; object-fit: contain; border-radius: 4px; }
-        .header h1 { margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 1px; }
-        
+        .brand-title img { height: 24px; border-radius: 4px; }
+        .brand-title h1 { margin: 0; font-size: 24px; font-weight: bold; color: var(--text-main); }
         .header-info { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-        .real-time-clock { font-size: 16px; font-weight: bold; font-variant-numeric: tabular-nums; color: #fff; letter-spacing: 0.5px; }
-        .conn-status { font-size: 11px; color: #34c759; display: flex; align-items: center; gap: 5px; transition: color 0.3s; }
+        .real-time-clock { font-size: 16px; font-weight: bold; font-variant-numeric: tabular-nums; color: var(--text-main); }
+        .conn-status { font-size: 11px; color: var(--success); display: flex; align-items: center; gap: 5px; }
         .conn-status::before { content: ""; display: inline-block; width: 6px; height: 6px; background: currentColor; border-radius: 50%; }
 
-        .tab-content { flex: 1; overflow-y: auto; display: none; flex-direction: column; background: #000; }
+        .tab-content { flex: 1; overflow-y: auto; display: none; flex-direction: column; background: var(--bg-main); }
         .tab-content.active { display: flex; }
         
-        /* ====== 底部導覽 ====== */
-        .bottom-nav {
-            display: flex; background: #1c1c1e; border-top: 1px solid #38383a;
-            padding-bottom: 15px; padding-top: 10px; z-index: 20; flex-shrink: 0;
-        }
-        .nav-item { flex: 1; text-align: center; color: #8e8e93; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: 0.2s;}
-        .nav-item.active { color: #0a84ff; }
-        .nav-icon { font-size: 18px; }
+        .bottom-nav { display: flex; background: var(--bg-main); border-top: 1px solid var(--border-color); padding: 12px 0 20px 0; z-index: 20; }
+        .nav-item { flex: 1; text-align: center; color: var(--text-sub); font-size: 12px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: 0.2s;}
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 20px; }
+
+        /* ====== 登入畫面 ====== */
+        .login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.5s; }
+        .login-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 24px; padding: 35px 25px; width: 75%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
 
         /* ====== 視覺舞台 ====== */
-        .visual-stage {
-            height: 330px; position: relative; background: #1c1c1e;
-            border-bottom: 1px solid #38383a; overflow: hidden; z-index: 10; flex-shrink: 0; display: flex;
-            transition: height 0.4s ease, opacity 0.4s ease;
-        }
-        
-        .webcam-wrapper {
-            position: absolute; top: 15px; left: 15px; width: 100px; height: 133px;
-            background: #000; border-radius: 12px; border: 2px solid #38383a;
-            overflow: hidden; z-index: 15; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-            display: none; transition: opacity 0.3s;
-        }
-        .webcam-label {
-            position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.6);
-            padding: 2px 6px; border-radius: 6px; font-size: 9px; color: #34c759; z-index: 20; font-weight: bold;
-        }
+        .visual-stage { height: 330px; position: relative; background: var(--bg-stage); border-bottom: 1px solid var(--border-color); overflow: hidden; z-index: 10; display: flex; transition: height 0.4s ease; }
+        .webcam-wrapper { position: absolute; top: 15px; left: 15px; width: 100px; height: 133px; background: #000; border-radius: 12px; border: 2px solid var(--border-color); overflow: hidden; z-index: 15; display: none; }
+        .webcam-label { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 6px; font-size: 9px; color: var(--success); z-index: 20; }
         #webcam-video, #webcam-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 
-        .holo-matrix {
-            position: absolute; top: 15px; right: 15px; width: 65px; height: 65px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px;
-            background: rgba(28, 28, 30, 0.75); border: 1px solid #38383a; border-radius: 12px; transform-style: preserve-3d; transform: perspective(300px) rotateX(15deg) rotateY(-15deg);
-            opacity: 0; transition: opacity 0.4s; z-index: 15; box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 10px rgba(10,132,255,0.1);
-        }
-        .holo-cell { background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.3); border-radius: 3px; transition: 0.3s; }
-        .holo-cell.alert { background: rgba(255, 69, 58, 0.6); box-shadow: 0 0 10px rgba(255, 69, 58, 0.8); border-color: #ff453a; transform: translateZ(5px); }
+        .holo-matrix { position: absolute; top: 15px; right: 15px; width: 65px; height: 65px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px; background: rgba(28, 28, 30, 0.5); border: 1px solid var(--border-color); border-radius: 12px; transform: perspective(300px) rotateX(15deg) rotateY(-15deg); opacity: 0; transition: 0.4s; z-index: 15; }
+        .holo-cell { background: var(--primary-glow); border: 1px solid var(--primary); border-radius: 3px; }
+        .holo-cell.alert { background: rgba(255, 69, 58, 0.6); border-color: var(--danger); }
 
         .chair-group { position: absolute; bottom: 85px; left: 160px; transition: transform 0.3s ease; z-index: 10; }
         .chair-back-wrapper { position: absolute; bottom: 0; left: -12px; width: 30px; height: 170px; transform-origin: bottom center; transition: transform 0.4s; z-index: 2; }
-        .chair-headrest { position: absolute; bottom: 145px; left: -3px; width: 35px; height: 25px; background-color: #e0d5c1; border-radius: 12px; border: 3px solid #f4f4f5; z-index: 1; transition: transform 0.3s; }
-        .chair-lumbar { position: absolute; bottom: 15px; left: 2px; width: 26px; height: 45px; background-color: #d1c5b1; border-radius: 8px; z-index: 3; transition: transform 0.3s; transform-origin: left center; }
-        .chair-back { position: absolute; bottom: 0; left: 0; width: 30px; height: 140px; background-color: #e0d5c1; border-radius: 12px; border: 4px solid #f4f4f5; border-right: none; box-shadow: inset -5px 0 10px rgba(0,0,0,0.05); }
-        .chair-armrest { position: absolute; bottom: 50px; left: 20px; width: 40px; height: 8px; background-color: #d1d1d6; border-radius: 4px; z-index: 4; }
-        .chair-armrest-support { position: absolute; bottom: 20px; left: 25px; width: 8px; height: 35px; background-color: #f4f4f5; z-index: 3; }
-        .chair-seat { position: absolute; bottom: 0; left: 0; width: 125px; height: 25px; background: linear-gradient(to bottom, #e0d5c1 60%, #f4f4f5 60%); border-radius: 12px; z-index: 2; }
-        .chair-leg-main { position: absolute; top: 25px; left: 55px; width: 14px; height: 50px; background: linear-gradient(to right, #aeaeb2, #d1d1d6); transition: height 0.3s; z-index: 1; }
-        .chair-base { position: absolute; top: 75px; left: 20px; width: 85px; height: 12px; background-color: #8e8e93; border-radius: 6px; clip-path: polygon(10% 0, 90% 0, 100% 100%, 0% 100%); z-index: 2; transition: top 0.3s; }
-        .chair-wheel { position: absolute; top: 85px; left: 25px; width: 12px; height: 12px; background-color: #38383a; border-radius: 50%; z-index: 1; transition: top 0.3s; box-shadow: 50px 0 0 #38383a; }
+        .chair-headrest { position: absolute; bottom: 145px; left: -3px; width: 35px; height: 25px; background-color: var(--chair-base); border-radius: 12px; border: 2px solid rgba(0,0,0,0.1); z-index: 1; transition: 0.3s; }
+        .chair-lumbar { position: absolute; bottom: 15px; left: 2px; width: 26px; height: 45px; background-color: rgba(0,0,0,0.2); border-radius: 8px; z-index: 3; transition: 0.3s; transform-origin: left center; }
+        .chair-back { position: absolute; bottom: 0; left: 0; width: 30px; height: 140px; background-color: var(--chair-base); border-radius: 12px; border: 2px solid rgba(0,0,0,0.1); border-right: none; }
+        .chair-armrest { position: absolute; bottom: 50px; left: 20px; width: 40px; height: 8px; background-color: #8e8e93; border-radius: 4px; z-index: 4; }
+        .chair-seat { position: absolute; bottom: 0; left: 0; width: 125px; height: 25px; background: var(--chair-base); border-radius: 12px; z-index: 2; }
+        .chair-leg-main { position: absolute; top: 25px; left: 55px; width: 14px; height: 50px; background: #8e8e93; transition: height 0.3s; z-index: 1; }
+        .chair-base { position: absolute; top: 75px; left: 20px; width: 85px; height: 12px; background-color: #555; border-radius: 6px; clip-path: polygon(10% 0, 90% 0, 100% 100%, 0% 100%); z-index: 2; transition: top 0.3s; }
+        
+        .ambient-glow { position: absolute; bottom: -20px; left: -20px; width: 180px; height: 180px; border-radius: 50%; filter: blur(40px); opacity: 0; transition: 0.8s; z-index: 0; pointer-events: none; mix-blend-mode: screen; }
+        body.light-mode .ambient-glow { mix-blend-mode: multiply; }
+        .smart-zones { position: absolute; bottom: 25px; left: 10px; width: 105px; height: 20px; display: flex; gap: 3px; opacity: 0; z-index: 3; transition: 0.3s; align-items: flex-end; }
+        .zone-bubble { flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; transform-origin: bottom; transform: scaleY(0); transition: 0.4s; opacity: 0.8;}
 
-        .ambient-glow { position: absolute; bottom: -20px; left: -20px; width: 180px; height: 180px; border-radius: 50%; filter: blur(40px); opacity: 0; transition: opacity 0.8s ease, background 0.8s ease; z-index: 0; pointer-events: none; mix-blend-mode: screen; }
-        .smart-zones { position: absolute; bottom: 25px; left: 10px; width: 105px; height: 20px; display: flex; gap: 3px; opacity: 0; z-index: 3; transition: opacity 0.3s; align-items: flex-end; }
-        .zone-bubble { flex: 1; background: linear-gradient(to top, rgba(10,132,255,0.9), rgba(10,132,255,0.4)); border-radius: 4px 4px 0 0; transform-origin: bottom; transform: scaleY(0); transition: transform 0.4s; }
-        .physical-panel { position: absolute; bottom: -5px; left: 35px; width: 80px; height: 24px; background: linear-gradient(145deg, #2c2c2e, #18181a); border-radius: 6px; z-index: 6; display: flex; justify-content: space-evenly; align-items: center; padding: 0 4px; border: 1px solid #48484a; }
-        .panel-btn { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(145deg, #48484a, #2c2c2e); box-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
-
-        /* ====== UI 區塊 ====== */
-        .controls-scroll { padding: 15px 20px 30px 20px; display: flex; flex-direction: column; gap: 15px; }
-        .control-group { background: #1c1c1e; border-radius: 16px; padding: 16px; border: 1px solid #2c2c2e; }
-        .control-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .control-title { font-size: 14px; font-weight: 600; color: #fff; }
-        .control-val-display { font-size: 13px; color: #0a84ff; font-weight: 600; font-variant-numeric: tabular-nums; transition: color 0.3s;}
+        /* ====== 控制面板 & 滑桿 ====== */
+        .controls-scroll { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .control-group { background: var(--bg-card); border-radius: 16px; padding: 18px; border: 1px solid var(--border-color); }
+        .control-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .control-title { font-size: 14px; font-weight: 600; color: var(--text-main); }
+        .control-val-display { font-size: 14px; color: var(--primary); font-weight: bold; font-variant-numeric: tabular-nums; }
         
         .mode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 5px; }
-        .mode-btn { background: #2c2c2e; border: 1px solid #38383a; color: #e5e5ea; padding: 10px 0; border-radius: 8px; font-size: 12px; cursor: pointer; transition: 0.2s; font-weight: 500;}
-        .mode-btn.active { background: #0a84ff; color: #fff; border-color: #0a84ff; box-shadow: 0 4px 10px rgba(10, 132, 255, 0.3); }
+        .mode-btn { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-sub); padding: 12px 0; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s; font-family: inherit; }
+        .mode-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 4px 12px var(--primary-glow); }
 
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 8px 0 15px; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 10px 0 15px; height: 24px; }
         input[type=range]:focus { outline: none; }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; background: #38383a; border-radius: 3px; cursor: pointer; }
-        input[type=range]::-webkit-slider-thumb { height: 20px; width: 20px; border-radius: 50%; background: #ffffff; cursor: pointer; -webkit-appearance: none; margin-top: -7px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .temp-track::-webkit-slider-runnable-track { background: linear-gradient(90deg, #0a84ff, #38383a, #ff453a) !important; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; }
+        input[type=range]::-webkit-slider-thumb { height: 26px; width: 26px; border-radius: 50%; background: var(--primary); cursor: pointer; -webkit-appearance: none; margin-top: -10px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); border: 3px solid #fff; transition: transform 0.1s; }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(1.15); }
+        .temp-track::-webkit-slider-runnable-track { background: linear-gradient(90deg, #0a84ff, var(--bg-main), #ff453a) !important; }
 
-        .system-alert-box { background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.3); border-radius: 12px; padding: 12px; font-size: 13px; color: #0a84ff; text-align: center; font-weight: 500; transition: 0.3s; margin-top: 5px; }
-        .system-alert-box.alert { background: rgba(255, 69, 58, 0.1); border-color: rgba(255, 69, 58, 0.3); color: #ff453a; }
+        .system-alert-box { background: var(--primary-glow); border: 1px solid var(--primary); border-radius: 12px; padding: 12px; font-size: 13px; color: var(--primary); text-align: center; font-weight: bold; transition: 0.3s; margin-top: 5px; }
+        .system-alert-box.alert { background: rgba(255, 69, 58, 0.15); border-color: var(--danger); color: var(--danger); }
+        .btn-ai-start { width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 15px; font-weight: bold; background: var(--primary); color: #fff; cursor: pointer; box-shadow: 0 4px 15px var(--primary-glow); transition: 0.2s; font-family: inherit; }
+        .btn-ai-start.running { background: transparent; color: var(--danger); box-shadow: none; border: 2px solid var(--danger); }
 
-        .btn-ai-start { width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 14px; font-weight: bold; background: linear-gradient(135deg, #0a84ff, #5e5ce6); color: #fff; cursor: pointer; box-shadow: 0 4px 15px rgba(10, 132, 255, 0.4); transition: 0.2s; }
-        .btn-ai-start:active { transform: scale(0.97); }
-        .btn-ai-start.running { background: rgba(255, 69, 58, 0.2); color: #ff453a; box-shadow: none; border: 1px solid #ff453a; background-image: none; }
-
-        /* ====== 沉浸式數據面板 ====== */
-        .data-dashboard { padding: 25px 20px; display: flex; flex-direction: column; gap: 18px; }
-        .score-card { background: linear-gradient(135deg, #2c2c2e, #1c1c1e); border-radius: 20px; padding: 25px; text-align: center; border: 1px solid #38383a; }
-        .score-circle { width: 110px; height: 110px; border-radius: 50%; border: 8px solid #34c759; margin: 0 auto 15px; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: 700; color: #34c759; transition: color 0.3s, border-color 0.3s; }
-        
-        .chart-container { background: #1c1c1e; border-radius: 16px; padding: 20px; border: 1px solid #2c2c2e; margin-top: 5px; }
-        .chart-wrapper { position: relative; height: 200px; width: 100%; }
-        
+        /* ====== 數據面板 ====== */
+        .score-card { background: var(--bg-card); border-radius: 20px; padding: 25px; text-align: center; border: 1px solid var(--border-color); }
+        .score-circle { width: 110px; height: 110px; border-radius: 50%; border: 8px solid var(--success); margin: 0 auto 15px; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: 700; color: var(--success); transition: 0.3s; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .stat-box { background: #1c1c1e; padding: 15px; border-radius: 16px; border: 1px solid #2c2c2e; }
-        .stat-label { font-size: 12px; color: #8e8e93; margin-bottom: 5px; }
-        .stat-val { font-size: 20px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums;}
-        .stat-val span { font-size: 12px; color: #8e8e93; }
+        .stat-box { background: var(--bg-card); padding: 15px; border-radius: 16px; border: 1px solid var(--border-color); }
+        .stat-label { font-size: 12px; color: var(--text-sub); margin-bottom: 5px; }
+        .stat-val { font-size: 20px; font-weight: 600; color: var(--text-main); }
+        .distribution-bar { width: 100%; height: 10px; border-radius: 5px; display: flex; overflow: hidden; margin-top: 10px; background: var(--bg-main); }
+        .dist-good { background: var(--success); transition: width 0.3s ease; }
+        .dist-warn { background: var(--warning); transition: width 0.3s ease; }
+        .dist-bad { background: var(--danger); transition: width 0.3s ease; }
+        .chart-container { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); }
+        .chart-wrapper { position: relative; height: 200px; width: 100%; }
 
-        /* 體態時間軸分佈條 */
-        .distribution-bar { width: 100%; height: 8px; border-radius: 4px; display: flex; overflow: hidden; margin-top: 10px; }
-        .dist-good { background: #34c759; transition: width 0.3s ease; }
-        .dist-warn { background: #ff9f0a; transition: width 0.3s ease; }
-        .dist-bad { background: #ff453a; transition: width 0.3s ease; }
-        .dist-labels { display: flex; justify-content: space-between; font-size: 11px; color: #8e8e93; margin-top: 6px; }
-
+        /* ====== 設置面板 ====== */
+        .profile-header { display: flex; align-items: center; gap: 15px; padding-bottom: 10px; }
+        .profile-img { width: 60px; height: 60px; border-radius: 50%; background: var(--bg-main); object-fit: cover; border: 2px solid var(--primary); }
+        .profile-info h3 { margin: 0 0 4px 0; font-size: 18px; color: var(--text-main); }
+        .profile-info p { margin: 0; font-size: 12px; color: var(--text-sub); }
+        
+        .settings-list { display: flex; flex-direction: column; gap: 12px; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+        .setting-item:last-child { border-bottom: none; }
+        .setting-label { font-size: 14px; font-weight: 500; color: var(--text-main); }
+        
+        select { background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 8px; font-size: 13px; outline: none; font-family: inherit; }
+        
+        .toggle-switch { position: relative; width: 44px; height: 24px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider-toggle { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); border-radius: 24px; transition: .4s; }
+        .slider-toggle:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .4s; }
+        input:checked + .slider-toggle { background-color: var(--primary); }
+        input:checked + .slider-toggle:before { transform: translateX(20px); }
     </style>
 </head>
 <body>
@@ -171,25 +197,22 @@
     
     <div id="login-overlay" class="login-overlay">
         <div class="login-card">
-            <img src="logo.png" alt="Logo" onerror="this.style.display='none'" style="height: 48px; margin-bottom: 15px; border-radius: 8px;">
-            <h2 style="margin:0 0 10px 0; color:#fff; font-size: 26px;">ALIGN<span style="color:#0a84ff">.AI</span></h2>
-            <p style="font-size:14px; color:#a1a1a6; margin-bottom: 30px; line-height:1.6;">
+            <h2 style="margin:0 0 10px 0; color:var(--text-main); font-size: 26px;">ALIGN<span style="color:var(--primary)">.AI</span></h2>
+            <p style="font-size:14px; color:var(--text-sub); margin-bottom: 30px; line-height:1.6;" data-i18n="login-desc">
                 連接您的雲端帳號，<br>同步健康數據與自動情境設定。
             </p>
-            
             <div id="google-btn-container" style="min-height: 44px; display: flex; justify-content: center;"></div>
-            <button class="skip-btn" onclick="skipLogin()">暫不登入，以訪客繼續</button>
+            <button class="skip-btn" onclick="skipLogin()" data-i18n="guest-mode">訪客模式 Guest</button>
         </div>
     </div>
 
     <div class="header">
         <div class="brand-title">
-            <img src="logo.png" alt="Logo" onerror="this.style.display='none'">
-            <h1>ALIGN<span style="color:#0a84ff">.AI</span></h1>
+            <h1 data-i18n="app-title">ALIGN.AI</h1>
         </div>
         <div class="header-info">
             <div class="real-time-clock" id="clockDisplay">00:00</div>
-            <div class="conn-status" id="headerStatus">設備已就緒</div>
+            <div class="conn-status" id="headerStatus" data-i18n="status-ready">設備已就緒</div>
         </div>
     </div>
 
@@ -199,13 +222,11 @@
             <video id="webcam-video" playsinline autoplay muted></video>
             <canvas id="webcam-canvas"></canvas>
         </div>
-        
         <div class="holo-matrix" id="holoMatrix">
             <div class="holo-cell" id="hc1"></div><div class="holo-cell" id="hc2"></div><div class="holo-cell" id="hc3"></div>
             <div class="holo-cell" id="hc4"></div><div class="holo-cell" id="hc5"></div><div class="holo-cell" id="hc6"></div>
             <div class="holo-cell" id="hc7"></div><div class="holo-cell" id="hc8"></div><div class="holo-cell" id="hc9"></div>
         </div>
-
         <div class="chair-group" id="chairGroup">
             <div class="ambient-glow" id="ambientGlow"></div>
             <div class="chair-back-wrapper" id="chairBackWrapper">
@@ -220,9 +241,6 @@
                     <div class="zone-bubble" id="zb3"></div><div class="zone-bubble" id="zb4"></div>
                     <div class="zone-bubble" id="zb5"></div>
                 </div>
-                <div class="physical-panel">
-                    <div class="panel-btn"></div><div class="panel-btn"></div><div class="panel-btn"></div>
-                </div>
             </div>
             <div class="chair-leg-main" id="chairLeg"></div>
             <div class="chair-base" id="chairBase"></div>
@@ -232,510 +250,546 @@
 
     <div id="tab-control" class="tab-content active">
         <div class="controls-scroll">
-            <div class="system-alert-box" id="sysAlert">系統平衡待機中 | 手動調整模式</div>
+            <div class="system-alert-box" id="sysAlert" data-i18n="sys-standby">系統平衡待機中 | 手動調整模式</div>
 
-            <div class="control-group" style="padding-bottom: 12px; border-color: rgba(10, 132, 255, 0.3);">
-                <div class="control-header" style="margin-bottom: 12px;">
-                    <span class="control-title">👁️ 真人視覺體態聯動</span>
-                    <span class="control-val-display" id="aiStatusText" style="color: #8e8e93;">已關閉</span>
+            <div class="control-group">
+                <div class="control-header">
+                    <span class="control-title">👁️ <span data-i18n="ai-vision">真人視覺體態聯動</span></span>
+                    <span class="control-val-display" id="aiStatusText" style="color: var(--text-sub);" data-i18n="off">已關閉</span>
                 </div>
-                <button class="btn-ai-start" id="btnStartAI" onclick="toggleAIVision()">啟動相機與動態補償</button>
+                <button class="btn-ai-start" id="btnStartAI" onclick="toggleAIVision()" data-i18n="start-ai">啟動相機與動態補償</button>
             </div>
 
-            <div class="control-group" style="padding-bottom: 10px;">
-                <div class="control-header" style="margin-bottom: 8px;">
-                    <span class="control-title">智慧情境模式</span>
-                </div>
+            <div class="control-group">
+                <div class="control-header"><span class="control-title" data-i18n="smart-mode">智慧情境模式</span></div>
                 <div class="mode-grid">
-                    <button class="mode-btn" id="mode-read" onclick="setMode('read')">閱讀</button>
-                    <button class="mode-btn active" id="mode-work" onclick="setMode('work')">工作</button>
-                    <button class="mode-btn" id="mode-relax" onclick="setMode('relax')">放鬆</button>
-                    <button class="mode-btn" id="mode-custom" onclick="setMode('custom')">自訂</button>
+                    <button class="mode-btn" id="mode-read" onclick="setMode('read')" data-i18n="read">閱讀</button>
+                    <button class="mode-btn active" id="mode-work" onclick="setMode('work')" data-i18n="work">工作</button>
+                    <button class="mode-btn" id="mode-relax" onclick="setMode('relax')" data-i18n="relax">放鬆</button>
+                    <button class="mode-btn" id="mode-custom" onclick="setMode('custom')" data-i18n="custom">自訂</button>
                 </div>
             </div>
 
             <div class="control-group">
-                <div class="control-header"><span class="control-title">座椅高度調整</span><span class="control-val-display" id="heightVal">45 cm</span></div>
+                <div class="control-header"><span class="control-title" data-i18n="height">座椅高度</span><span class="control-val-display" id="heightVal">45 cm</span></div>
                 <input type="range" min="40" max="55" value="45" id="heightSlider" oninput="updateControls(true)">
 
-                <div class="control-header"><span class="control-title">椅背傾仰角度</span><span class="control-val-display" id="angleVal">95°</span></div>
+                <div class="control-header"><span class="control-title" data-i18n="tilt">椅背傾仰</span><span class="control-val-display" id="angleVal">95°</span></div>
                 <input type="range" min="90" max="135" value="95" id="angleSlider" oninput="updateControls(true)">
                 
-                <div class="control-header"><span class="control-title">動態腰靠深度</span><span class="control-val-display" id="lumbarVal">40%</span></div>
+                <div class="control-header"><span class="control-title" data-i18n="lumbar">動態腰靠</span><span class="control-val-display" id="lumbarVal">40%</span></div>
                 <input type="range" min="0" max="100" value="40" id="lumbarSlider" oninput="updateControls(true)">
 
-                <div class="control-header" style="margin-bottom: 0;"><span class="control-title">頸枕高度調節</span><span class="control-val-display" id="headVal">0 cm</span></div>
-                <input type="range" min="-10" max="10" value="0" id="headSlider" oninput="updateControls(true)" style="margin-bottom: 0;">
-            </div>
-
-            <div class="control-group">
-                <div class="control-header"><span class="control-title">坐墊溫度設定</span><span class="control-val-display" id="tempVal" style="color: #ffffff;">25°C (自然)</span></div>
+                <div class="control-header"><span class="control-title" data-i18n="headrest">頸枕高度</span><span class="control-val-display" id="headVal">0 cm</span></div>
+                <input type="range" min="-10" max="10" value="0" id="headSlider" oninput="updateControls(true)">
+                
+                <div class="control-header"><span class="control-title" data-i18n="temp">坐墊溫度</span><span class="control-val-display" id="tempVal" style="color: var(--text-main);">25°C</span></div>
                 <input type="range" min="18" max="38" value="25" class="temp-track" id="tempSlider" oninput="updateTemp(this.value)" style="margin-bottom: 0;">
             </div>
         </div>
     </div>
 
     <div id="tab-data" class="tab-content">
-        <div class="data-dashboard">
-            
-            <div class="control-header" style="margin-bottom: 0;">
-                <span class="control-title" style="font-size: 18px;">📊 個人健康數據中心</span>
-                <span class="control-val-display" style="color: #8e8e93; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 8px;" id="syncStatus">訪客模式</span>
+        <div class="controls-scroll">
+            <div class="control-header" style="margin-bottom: 5px;">
+                <span class="control-title" style="font-size: 18px;" data-i18n="data-center">📊 數據中心</span>
+                <span class="control-val-display" style="color: var(--text-sub); background: var(--bg-main); padding: 4px 8px; border-radius: 8px;" id="syncStatus" data-i18n="guest">訪客</span>
             </div>
 
             <div class="score-card">
-                <div class="score-title" style="margin-bottom: 15px;">即時健康體態評分</div>
+                <div class="control-title" style="margin-bottom: 15px;" data-i18n="realtime-score">即時健康評分</div>
                 <div class="score-circle" id="scoreCircle">100</div>
-                <div style="font-size: 13px; color: #8e8e93;">基於 AI 即時判讀連動</div>
             </div>
             
             <div class="stats-grid">
                 <div class="stat-box">
-                    <div class="stat-label">局部氣囊介入</div>
-                    <div class="stat-val" style="color: #0a84ff;" id="interveneCount">0 <span>次</span></div>
+                    <div class="stat-label" data-i18n="interventions">氣囊介入</div>
+                    <div class="stat-val" style="color: var(--primary);" id="interveneCount">0</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">當前姿態分析</div>
-                    <div class="stat-val" style="font-size: 16px;" id="currentPostureLabel">標準居中</div>
+                    <div class="stat-label" data-i18n="current-posture">當前姿態</div>
+                    <div class="stat-val" style="font-size: 15px;" id="currentPostureLabel" data-i18n="posture-perfect">標準居中</div>
                 </div>
             </div>
 
-            <div class="control-group" style="padding: 15px;">
-                <div class="control-title" style="margin-bottom: 10px; font-size: 13px;">今日體態分佈動態佔比</div>
+            <div class="control-group">
+                <div class="control-title" style="margin-bottom: 10px; font-size: 13px;" data-i18n="posture-dist">今日體態分佈</div>
                 <div class="distribution-bar">
                     <div class="dist-good" id="barGood" style="width: 100%;"></div>
                     <div class="dist-warn" id="barWarn" style="width: 0%;"></div>
                     <div class="dist-bad" id="barBad" style="width: 0%;"></div>
                 </div>
-                <div class="dist-labels">
-                    <span id="labelGood"><span style="color:#34c759">●</span> 標準 100%</span>
-                    <span id="labelWarn"><span style="color:#ff9f0a">●</span> 輕微偏移 0%</span>
-                    <span id="labelBad"><span style="color:#ff453a">●</span> 不良 0%</span>
+                <div class="dist-labels" style="margin-top: 10px;">
+                    <span id="labelGood"><span style="color:var(--success)">●</span> <span data-i18n="good">標準</span> 100%</span>
+                    <span id="labelWarn"><span style="color:var(--warning)">●</span> <span data-i18n="warn">偏移</span> 0%</span>
+                    <span id="labelBad"><span style="color:var(--danger)">●</span> <span data-i18n="bad">不良</span> 0%</span>
                 </div>
             </div>
 
             <div class="chart-container">
-                <div class="control-title" style="margin-bottom: 15px;">本週評分趨勢</div>
-                <div class="chart-wrapper">
-                    <canvas id="historyChart"></canvas>
+                <div class="control-title" style="margin-bottom: 15px;" data-i18n="weekly-trend">本週評分趨勢</div>
+                <div class="chart-wrapper"><canvas id="historyChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-settings" class="tab-content">
+        <div class="controls-scroll">
+            <div class="control-group profile-header">
+                <img src="https://via.placeholder.com/60/38383a/ffffff?text=U" alt="Avatar" class="profile-img" id="profileAvatar">
+                <div class="profile-info">
+                    <h3 id="profileName" data-i18n="guest">訪客</h3>
+                    <p id="profileEmail" data-i18n="not-synced">尚未綁定雲端帳號</p>
                 </div>
             </div>
 
+            <div class="control-group">
+                <div class="control-title" style="margin-bottom: 15px;" data-i18n="preferences">偏好設定</div>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <span class="setting-label" data-i18n="language">Language / 語言</span>
+                        <select id="langSelect" onchange="changeLanguage(this.value)">
+                            <option value="zh-TW">繁體中文</option>
+                            <option value="en">English (Basic)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <span class="setting-label" data-i18n="font-style">字體風格</span>
+                        <select id="fontSelect" onchange="changeFont(this.value)">
+                            <option value="system" data-i18n="font-system">系統預設</option>
+                            <option value="jf-openhuninn" data-i18n="font-jf">jf 粉圓體</option>
+                            <option value="chenyuluoyan" data-i18n="font-chen">辰宇落雁體</option>
+                            <option value="iansui" data-i18n="font-iansui">芫荽體</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <span class="setting-label" data-i18n="dark-mode">深色模式</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="darkModeToggle" checked onchange="toggleDarkMode(this.checked)">
+                            <span class="slider-toggle"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label" data-i18n="theme-color">主題風格</span>
+                        <select id="themeSelect" onchange="changeTheme(this.value)">
+                            <option value="blue" data-i18n="color-blue">科技藍</option>
+                            <option value="green" data-i18n="color-green">自然綠</option>
+                            <option value="purple" data-i18n="color-purple">電競紫</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title" style="margin-bottom: 15px;" data-i18n="audio-notif">音效與通知</div>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <span class="setting-label" data-i18n="sound-fx">系統提示音效</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="soundToggle" checked onchange="toggleSound(this.checked)">
+                            <span class="slider-toggle"></span>
+                        </label>
+                    </div>
+                    <div>
+                        <span class="setting-label" style="font-size: 12px; color:var(--text-sub);" data-i18n="volume">音量大小</span>
+                        <input type="range" min="0" max="100" value="50" oninput="changeVolume(this.value)">
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="bottom-nav">
-        <div class="nav-item active" id="nav-control" onclick="switchTab('control')"><span class="nav-icon">🎛️</span><span>動態控制</span></div>
-        <div class="nav-item" id="nav-data" onclick="switchTab('data')"><span class="nav-icon">📊</span><span>健康數據</span></div>
+        <div class="nav-item active" id="nav-control" onclick="switchTab('control')"><span class="nav-icon">🎛️</span><span data-i18n="nav-control">控制</span></div>
+        <div class="nav-item" id="nav-data" onclick="switchTab('data')"><span class="nav-icon">📊</span><span data-i18n="nav-data">數據</span></div>
+        <div class="nav-item" id="nav-settings" onclick="switchTab('settings')"><span class="nav-icon">⚙️</span><span data-i18n="nav-settings">設置</span></div>
     </div>
 </div>
 
 <script>
-    // ====== 即時時鐘邏輯 ======
-    function updateClock() {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
-        document.getElementById('clockDisplay').innerText = timeString;
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
+    // ==========================================
+    // 1. Firebase 初始化 (請填入你的金鑰)
+    // ==========================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyBGfAI3g4z4rqv7EIb9gDi4G_y_CpvDDxY",
+        authDomain: "alignchair-16223.firebaseapp.com",
+        projectId: "alignchair-16223",
+        storageBucket: "alignchair-16223.firebasestorage.app",
+        messagingSenderId: "696937341924",
+        appId: "1:696937341924:web:da9c865ff7681aa6b61df1",
+        measurementId: "G-5BMEHJ1FWG"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-    // ====== 聲音引擎 ======
+    let currentUserEmail = null;
+    let lastFirestoreSyncTime = 0;
+    let myChart; 
+    let currentScore = 100;
+    let historyScores = [null, null, null, null, null, null, 100];
+    let interveneCount = 0;
+    let badPostureTimer = 0;
+    let isAirbagActive = false;
+    let framesNormal = 1, framesWarn = 0, framesBad = 0;
+
+    // ==========================================
+    // 2. 設置面板邏輯 (字體、主題、語言)
+    // ==========================================
+    let isMuted = false;
+    let globalVolume = 0.5;
+
+    // 🌟 這裡實作字體切換邏輯
+    function changeFont(fontType) {
+        SoundEngine.click();
+        const root = document.documentElement;
+        
+        switch(fontType) {
+            case 'jf-openhuninn':
+                root.style.setProperty('--main-font', "'JF-OpenHuninn', sans-serif");
+                break;
+            case 'chenyuluoyan':
+                root.style.setProperty('--main-font', "'ChenYuluoyan', sans-serif");
+                break;
+            case 'iansui':
+                root.style.setProperty('--main-font', "'Iansui', sans-serif");
+                break;
+            case 'system':
+            default:
+                root.style.setProperty('--main-font', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif');
+                break;
+        }
+    }
+
+    function toggleDarkMode(isDark) {
+        if(isDark) document.body.classList.remove('light-mode');
+        else document.body.classList.add('light-mode');
+        if(myChart) {
+            myChart.options.scales.x.ticks.color = isDark ? '#8e8e93' : '#6e6e73';
+            myChart.options.scales.y.ticks.color = isDark ? '#8e8e93' : '#6e6e73';
+            myChart.update();
+        }
+    }
+
+    function changeTheme(color) {
+        document.body.className = document.body.className.replace(/theme-\w+/g, '');
+        if(color !== 'blue') document.body.classList.add('theme-' + color);
+    }
+
+    function toggleSound(isOn) { isMuted = !isOn; }
+    function changeVolume(val) { globalVolume = val / 100; }
+
+    const i18n = {
+        'en': {
+            'login-desc': 'Connect cloud account.<br>Sync data and settings.', 'guest-mode': 'Guest Mode', 'app-title': 'ALIGN.AI',
+            'status-ready': 'Ready', 'nav-control': 'Control', 'nav-data': 'Data', 'nav-settings': 'Settings',
+            'sys-standby': 'System Standby | Manual Mode', 'ai-vision': 'AI Vision Link', 'off': 'Off', 'start-ai': 'Start Camera',
+            'smart-mode': 'Smart Mode', 'read': 'Read', 'work': 'Work', 'relax': 'Relax', 'custom': 'Custom',
+            'height': 'Seat Height', 'tilt': 'Back Tilt', 'lumbar': 'Lumbar Support', 'headrest': 'Headrest', 'temp': 'Temperature',
+            'data-center': '📊 Data Center', 'guest': 'Guest', 'realtime-score': 'Real-time Score', 'interventions': 'Airbag Used',
+            'current-posture': 'Current Posture', 'posture-perfect': 'Perfect', 'posture-dist': 'Today Posture Dist.',
+            'good': 'Good', 'warn': 'Warning', 'bad': 'Bad', 'weekly-trend': 'Weekly Trend',
+            'not-synced': 'Cloud not connected', 'preferences': 'Preferences', 'language': 'Language', 'dark-mode': 'Dark Mode',
+            'theme-color': 'Theme Color', 'color-blue': 'Blue', 'color-green': 'Green', 'color-purple': 'Purple',
+            'audio-notif': 'Audio & Alerts', 'sound-fx': 'System Sound', 'volume': 'Volume', 'push-notif': 'Posture Alerts',
+            'font-style': 'Font Style', 'font-system': 'System Default', 'font-jf': 'jf OpenHuninn', 'font-chen': 'ChenYuluoyan', 'font-iansui': 'Iansui'
+        }
+    };
+    const defaultTexts = {}; 
+
+    function changeLanguage(lang) {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (!defaultTexts[key]) defaultTexts[key] = el.innerHTML; 
+            el.innerHTML = lang === 'en' ? (i18n.en[key] || defaultTexts[key]) : defaultTexts[key];
+        });
+    }
+
+    // ==========================================
+    // 3. 基礎功能 (時鐘與音效)
+    // ==========================================
+    function updateClock() {
+        document.getElementById('clockDisplay').innerText = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+    }
+    setInterval(updateClock, 1000); updateClock();
+
     const SoundEngine = {
         ctx: null,
         init: function() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); },
-        playTone: function(freq, type, duration, vol) { if (!this.ctx) return; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime); gain.gain.setValueAtTime(vol, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + duration); },
-        tick: function() { this.init(); this.playTone(800, 'sine', 0.05, 0.02); }, 
-        click: function() { this.init(); this.playTone(1200, 'sine', 0.1, 0.05); }, 
-        alert: function() { this.init(); this.playTone(400, 'sawtooth', 0.2, 0.05); setTimeout(()=>this.playTone(400, 'sawtooth', 0.2, 0.05), 300); },
-        success: function() { this.init(); this.playTone(523.25, 'sine', 0.4, 0.05); this.playTone(659.25, 'sine', 0.4, 0.05); }
+        playTone: function(freq, type, duration) { 
+            if (isMuted) return; this.init(); 
+            const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); 
+            osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime); 
+            gain.gain.setValueAtTime(globalVolume, this.ctx.currentTime); 
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration); 
+            osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + duration); 
+        },
+        tick: function() { this.playTone(800, 'sine', 0.05); }, 
+        click: function() { this.playTone(1200, 'sine', 0.1); }, 
+        alert: function() { this.playTone(400, 'sawtooth', 0.2); setTimeout(()=>this.playTone(400, 'sawtooth', 0.2), 300); },
+        success: function() { this.playTone(523.25, 'sine', 0.4); this.playTone(659.25, 'sine', 0.4); }
     };
     document.body.addEventListener('click', () => { SoundEngine.init(); }, { once: true });
 
-    // ====== 開場 Google OAuth 登入整合 ======
+    // ==========================================
+    // 4. Google Auth & 雲端同步
+    // ==========================================
     window.onload = function () {
         google.accounts.id.initialize({
-            // ⚠️ 記得換成你的 Client ID ⚠️
             client_id: "547487173655-2h704dftntusk7h6hn4jlvo9fucncu40.apps.googleusercontent.com", 
             callback: handleCredentialResponse
         });
-        google.accounts.id.renderButton(
-            document.getElementById("google-btn-container"),
-            { theme: "outline", size: "large", type: "standard", shape: "pill", width: "250" }
-        );
+        google.accounts.id.renderButton(document.getElementById("google-btn-container"), { theme: "outline", size: "large", type: "standard", shape: "pill", width: "250" });
+        initChart();
     };
 
     function skipLogin() {
         SoundEngine.click();
-        const overlay = document.getElementById('login-overlay');
-        overlay.style.opacity = '0';
-        setTimeout(() => overlay.style.display = 'none', 500);
+        document.getElementById('login-overlay').style.opacity = '0';
+        setTimeout(() => document.getElementById('login-overlay').style.display = 'none', 500);
     }
 
     function handleCredentialResponse(response) {
         SoundEngine.success();
-        const responsePayload = parseJwt(response.credential);
+        const payload = parseJwt(response.credential);
+        currentUserEmail = payload.email; 
         
-        const overlay = document.getElementById('login-overlay');
-        overlay.style.opacity = '0';
-        setTimeout(() => overlay.style.display = 'none', 500);
+        document.getElementById('login-overlay').style.opacity = '0';
+        setTimeout(() => document.getElementById('login-overlay').style.display = 'none', 500);
         
+        document.getElementById('profileName').innerText = payload.name;
+        document.getElementById('profileEmail').innerText = payload.email;
+        document.getElementById('profileAvatar').src = payload.picture;
+
         const syncLabel = document.getElementById('syncStatus');
-        syncLabel.innerHTML = `✅ ${responsePayload.name} 已同步`;
-        syncLabel.style.color = "#34c759";
+        syncLabel.innerHTML = `✅ ${payload.name}`;
+        syncLabel.style.color = "var(--success)";
         syncLabel.style.background = "rgba(52, 199, 89, 0.1)";
+
+        db.collection("users").doc(currentUserEmail).get().then((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.historyScores) {
+                    historyScores = data.historyScores;
+                    currentScore = historyScores[6] || 100;
+                    document.getElementById('scoreCircle').innerText = Math.round(currentScore);
+                    myChart.update();
+                }
+            } else {
+                db.collection("users").doc(currentUserEmail).set({
+                    name: payload.name, historyScores: historyScores, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        });
     }
 
     function parseJwt(token) {
         var base64Url = token.split('.')[1];
         var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
+        var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) { return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); }).join(''));
         return JSON.parse(jsonPayload);
     }
 
-    // ====== 分頁切換邏輯 ======
-    let myChart; 
+    // ==========================================
+    // 5. 圖表初始化 (Chart.js)
+    // ==========================================
+    function initChart() {
+        const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+        const todayIndex = new Date().getDay();
+        const dynamicLabels = [];
+        for(let i=6; i>=1; i--) dynamicLabels.push(dayNames[(todayIndex - i + 7) % 7]);
+        dynamicLabels.push('今日');
 
+        const ctxChart = document.getElementById('historyChart').getContext('2d');
+        const gradient = ctxChart.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, 'rgba(10, 132, 255, 0.4)');
+        gradient.addColorStop(1, 'rgba(10, 132, 255, 0)');
+
+        myChart = new Chart(ctxChart, {
+            type: 'line',
+            data: { labels: dynamicLabels, datasets: [{ label: 'Score', data: historyScores, borderColor: '#0a84ff', backgroundColor: gradient, borderWidth: 2, pointBackgroundColor: '#1c1c1e', pointBorderColor: '#0a84ff', pointBorderWidth: 2, pointRadius: 4, tension: 0.4, fill: true, spanGaps: false }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 40, max: 100, grid: { color: '#38383a' }, ticks: { color: '#8e8e93', font: {size: 10} } }, x: { grid: { display: false }, ticks: { color: '#8e8e93', font: {size: 10} } } }, animation: { duration: 200 } }
+        });
+    }
+
+    // ==========================================
+    // 6. 分頁與 UI 滑桿
+    // ==========================================
     function switchTab(tab) {
         SoundEngine.click();
         document.querySelectorAll('.tab-content, .nav-item').forEach(el => el.classList.remove('active'));
         document.getElementById('tab-' + tab).classList.add('active');
         document.getElementById('nav-' + tab).classList.add('active');
 
-        const visualStage = document.getElementById('visual-stage');
-        if (tab === 'data') {
-            visualStage.style.height = '0px';
-            visualStage.style.opacity = '0';
-            setTimeout(() => { if(myChart) myChart.resize(); }, 400); 
-        } else {
-            visualStage.style.height = '330px';
-            visualStage.style.opacity = '1';
-        }
+        const vs = document.getElementById('visual-stage');
+        if (tab !== 'control') { vs.style.height = '0px'; vs.style.opacity = '0'; setTimeout(() => { if(myChart) myChart.resize(); }, 400); } 
+        else { vs.style.height = '330px'; vs.style.opacity = '1'; }
     }
-
-    // ====== 動態歷史趨勢圖表 (已修復新帳號邏輯) ======
-    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
-    const todayIndex = new Date().getDay();
-    const dynamicLabels = [];
-    for(let i=6; i>=1; i--) { dynamicLabels.push(dayNames[(todayIndex - i + 7) % 7]); }
-    dynamicLabels.push('今日');
-
-    // 🌟 修改點：更換儲存鑰匙，強制給予新使用者邏輯 (前六天為 null 空白數據)
-    let historyScores = JSON.parse(localStorage.getItem('alignHistoryScores_v2'));
-    if (!historyScores) {
-        // 新帳號只有今天的 100 分，前幾天是 null
-        historyScores = [null, null, null, null, null, null, 100];
-        localStorage.setItem('alignHistoryScores_v2', JSON.stringify(historyScores));
-    }
-    let currentScore = historyScores[6];
-
-    const ctxChart = document.getElementById('historyChart').getContext('2d');
-    const gradient = ctxChart.createLinearGradient(0, 0, 0, 200);
-    gradient.addColorStop(0, 'rgba(10, 132, 255, 0.4)');
-    gradient.addColorStop(1, 'rgba(10, 132, 255, 0)');
-
-    myChart = new Chart(ctxChart, {
-        type: 'line',
-        data: {
-            labels: dynamicLabels,
-            datasets: [{
-                label: '體態分數',
-                data: historyScores,
-                borderColor: '#0a84ff', backgroundColor: gradient,
-                borderWidth: 2, pointBackgroundColor: '#1c1c1e', pointBorderColor: '#0a84ff',
-                pointBorderWidth: 2, pointRadius: 4, tension: 0.4, fill: true, spanGaps: false
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { min: 40, max: 100, grid: { color: '#38383a' }, ticks: { color: '#8e8e93', font: {size: 10} } },
-                x: { grid: { display: false }, ticks: { color: '#8e8e93', font: {size: 10} } }
-            },
-            animation: { duration: 200 }
-        }
-    });
-
-    // ====== UI 與滑桿邏輯 ======
-    const angleSlider = document.getElementById('angleSlider');
-    const lumbarSlider = document.getElementById('lumbarSlider');
-    const heightSlider = document.getElementById('heightSlider');
-    const headSlider = document.getElementById('headSlider');
-    const tempSlider = document.getElementById('tempSlider');
-    
-    const chairGroup = document.getElementById('chairGroup');
-    const chairBackWrapper = document.getElementById('chairBackWrapper');
-    const chairLumbar = document.getElementById('chairLumbar');
-    const chairHeadrest = document.getElementById('chairHeadrest');
-    const chairLeg = document.getElementById('chairLeg');
-    const chairBase = document.getElementById('chairBase');
-    const chairWheel = document.getElementById('chairWheel');
-    const ambientGlow = document.getElementById('ambientGlow');
 
     function updateControls(isManual = false) {
         if(isManual) SoundEngine.tick();
-        
-        let height = heightSlider.value;
+        const height = document.getElementById('heightSlider').value;
         document.getElementById('heightVal').innerText = height + ' cm';
-        let offset = (height - 45) * -2; 
-        chairGroup.style.transform = `translateY(${offset}px)`;
-        chairLeg.style.height = `${50 - offset}px`;
-        chairBase.style.top = `${75 - offset}px`;
-        chairWheel.style.top = `${85 - offset}px`;
+        const offset = (height - 45) * -2; 
+        document.getElementById('chairGroup').style.transform = `translateY(${offset}px)`;
+        document.getElementById('chairLeg').style.height = `${50 - offset}px`;
+        document.getElementById('chairBase').style.top = `${75 - offset}px`;
+        document.getElementById('chairWheel').style.top = `${85 - offset}px`;
         
-        let angle = angleSlider.value;
+        const angle = document.getElementById('angleSlider').value;
         document.getElementById('angleVal').innerText = angle + '°';
-        chairBackWrapper.style.transform = `rotate(-${angle - 90}deg)`;
+        document.getElementById('chairBackWrapper').style.transform = `rotate(-${angle - 90}deg)`;
         
-        let lumbar = lumbarSlider.value;
+        const lumbar = document.getElementById('lumbarSlider').value;
         document.getElementById('lumbarVal').innerText = lumbar + '%';
-        if (!isAirbagActive) chairLumbar.style.transform = `scaleX(${1 + (lumbar / 100) * 0.8})`;
+        if (!isAirbagActive) document.getElementById('chairLumbar').style.transform = `scaleX(${1 + (lumbar / 100) * 0.8})`;
 
-        let head = headSlider.value;
+        const head = document.getElementById('headSlider').value;
         document.getElementById('headVal').innerText = head + ' cm';
-        chairHeadrest.style.transform = `translateY(${head * -1}px)`;
+        document.getElementById('chairHeadrest').style.transform = `translateY(${head * -1}px)`;
         
-        if (isManual) {
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('mode-custom').classList.add('active');
-        }
+        if (isManual) { document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active')); document.getElementById('mode-custom').classList.add('active'); }
     }
 
     function updateTemp(val) {
         SoundEngine.tick();
-        let display = document.getElementById('tempVal');
-        
-        if(val > 30) {
-            display.innerText = val + '°C (熱敷)'; display.style.color = '#ff453a';
-            ambientGlow.style.background = 'radial-gradient(circle, rgba(255,69,58,0.45) 0%, transparent 65%)';
-            ambientGlow.style.opacity = '1';
-        } else if(val < 22) {
-            display.innerText = val + '°C (散熱)'; display.style.color = '#0a84ff';
-            ambientGlow.style.background = 'radial-gradient(circle, rgba(10,132,255,0.45) 0%, transparent 65%)';
-            ambientGlow.style.opacity = '1';
-        } else {
-            display.innerText = val + '°C (自然)'; display.style.color = '#ffffff';
-            ambientGlow.style.opacity = '0';
-        }
+        const glow = document.getElementById('ambientGlow');
+        document.getElementById('tempVal').innerText = val + '°C';
+        if(val > 30) { glow.style.background = 'radial-gradient(circle, rgba(255,69,58,0.45) 0%, transparent 65%)'; glow.style.opacity = '1'; document.getElementById('tempVal').style.color = "var(--danger)"; } 
+        else if(val < 22) { glow.style.background = 'radial-gradient(circle, rgba(10,132,255,0.45) 0%, transparent 65%)'; glow.style.opacity = '1'; document.getElementById('tempVal').style.color = "var(--primary)"; } 
+        else { glow.style.opacity = '0'; document.getElementById('tempVal').style.color = "var(--text-main)"; }
     }
 
-    const modes = {
-        read:  { angle: 105, lumbar: 70, head: 5,  height: 42, temp: 25 },
-        work:  { angle: 95,  lumbar: 40, head: 0,  height: 48, temp: 22 },
-        relax: { angle: 130, lumbar: 20, head: 8,  height: 40, temp: 32 },
-        custom:{ angle: 110, lumbar: 50, head: 0,  height: 45, temp: 25 }
-    };
-
+    const modes = { read: { angle: 105, lumbar: 70, head: 5, height: 42, temp: 25 }, work: { angle: 95, lumbar: 40, head: 0, height: 48, temp: 22 }, relax: { angle: 130, lumbar: 20, head: 8, height: 40, temp: 32 }, custom:{ angle: 110, lumbar: 50, head: 0, height: 45, temp: 25 } };
     function setMode(mode) {
         SoundEngine.click();
-        angleSlider.value = modes[mode].angle;
-        lumbarSlider.value = modes[mode].lumbar;
-        headSlider.value = modes[mode].head;
-        heightSlider.value = modes[mode].height;
-        tempSlider.value = modes[mode].temp;
-        
-        updateControls(false);
-        updateTemp(modes[mode].temp);
-
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('mode-' + mode).classList.add('active');
+        document.getElementById('angleSlider').value = modes[mode].angle; document.getElementById('lumbarSlider').value = modes[mode].lumbar;
+        document.getElementById('headSlider').value = modes[mode].head; document.getElementById('heightSlider').value = modes[mode].height;
+        document.getElementById('tempSlider').value = modes[mode].temp;
+        updateControls(false); updateTemp(modes[mode].temp);
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active')); document.getElementById('mode-' + mode).classList.add('active');
     }
 
-    // ====== AI 數據聯動狀態 ======
-    let interveneCount = 0;
-    let badPostureTimer = 0;
-    let isAirbagActive = false;
-
-    // 🌟 新增：動態分佈統計變數
-    let framesNormal = 1; // 預設給 1 避免計算出現 NaN
-    let framesWarn = 0;
-    let framesBad = 0;
-
-    const sysAlert = document.getElementById('sysAlert');
-    const holoMatrix = document.getElementById('holoMatrix');
-    const smartZones = document.getElementById('smartZones');
-    const scoreCircle = document.getElementById('scoreCircle');
-
+    // ==========================================
+    // 7. AI 數據邏輯與 Firestore 同步
+    // ==========================================
     function syncSystemData(postureState) {
-        // 1. 分數計算
         if (postureState !== 'normal') {
-            currentScore = Math.max(0, currentScore - 0.2);
-            badPostureTimer++;
+            currentScore = Math.max(0, currentScore - 0.2); badPostureTimer++;
             if (!isAirbagActive && badPostureTimer > 15) activateAirbag(postureState);
         } else {
-            currentScore = Math.min(100, currentScore + 0.1);
-            badPostureTimer = 0;
+            currentScore = Math.min(100, currentScore + 0.1); badPostureTimer = 0;
             if (isAirbagActive) deactivateAirbag();
         }
 
         let roundedScore = Math.round(currentScore);
-        scoreCircle.innerText = roundedScore;
-        
-        if (roundedScore < 60) {
-            scoreCircle.style.color = "#ff453a"; scoreCircle.style.borderColor = "#ff453a";
-        } else if (roundedScore < 85) {
-            scoreCircle.style.color = "#ff9f0a"; scoreCircle.style.borderColor = "#ff9f0a";
-        } else {
-            scoreCircle.style.color = "#34c759"; scoreCircle.style.borderColor = "#34c759";
-        }
+        const sc = document.getElementById('scoreCircle');
+        sc.innerText = roundedScore;
+        if (roundedScore < 60) { sc.style.color = "var(--danger)"; sc.style.borderColor = "var(--danger)"; } 
+        else if (roundedScore < 85) { sc.style.color = "var(--warning)"; sc.style.borderColor = "var(--warning)"; } 
+        else { sc.style.color = "var(--success)"; sc.style.borderColor = "var(--success)"; }
 
         historyScores[6] = currentScore;
-        localStorage.setItem('alignHistoryScores_v2', JSON.stringify(historyScores));
         myChart.update();
 
-        // 2. 🌟 動態更新體態佔比時間軸
-        if (postureState === 'normal') {
-            framesNormal++;
-        } else if (isAirbagActive) {
-            framesBad++; // 氣囊作動中判定為不良
-        } else {
-            framesWarn++; // 身體歪斜但還沒觸發氣囊判定為警告
+        const now = Date.now();
+        if (currentUserEmail && (now - lastFirestoreSyncTime > 5000)) {
+            db.collection("users").doc(currentUserEmail).set({
+                historyScores: historyScores,
+                sessionData: { framesNormal: framesNormal, framesWarn: framesWarn, framesBad: framesBad, interveneCount: interveneCount },
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            lastFirestoreSyncTime = now;
         }
 
-        let totalFrames = framesNormal + framesWarn + framesBad;
-        let pctGood = Math.round((framesNormal / totalFrames) * 100);
-        let pctBad = Math.round((framesBad / totalFrames) * 100);
-        let pctWarn = 100 - pctGood - pctBad; // 確保加總為 100
-
-        // 更新 UI 寬度與文字
-        document.getElementById('barGood').style.width = pctGood + '%';
-        document.getElementById('barWarn').style.width = pctWarn + '%';
-        document.getElementById('barBad').style.width = pctBad + '%';
-        
-        document.getElementById('labelGood').innerHTML = `<span style="color:#34c759">●</span> 標準 ${pctGood}%`;
-        document.getElementById('labelWarn').innerHTML = `<span style="color:#ff9f0a">●</span> 輕微偏移 ${pctWarn}%`;
-        document.getElementById('labelBad').innerHTML = `<span style="color:#ff453a">●</span> 不良 ${pctBad}%`;
+        if (postureState === 'normal') framesNormal++; else if (isAirbagActive) framesBad++; else framesWarn++; 
+        let total = framesNormal + framesWarn + framesBad;
+        let pG = Math.round((framesNormal/total)*100); let pB = Math.round((framesBad/total)*100); let pW = 100 - pG - pB;
+        document.getElementById('barGood').style.width = pG + '%'; document.getElementById('barWarn').style.width = pW + '%'; document.getElementById('barBad').style.width = pB + '%';
+        const isEn = document.getElementById('langSelect').value === 'en';
+        document.getElementById('labelGood').innerHTML = `<span style="color:var(--success)">●</span> ${isEn?'Good':'標準'} ${pG}%`;
+        document.getElementById('labelWarn').innerHTML = `<span style="color:var(--warning)">●</span> ${isEn?'Warning':'偏移'} ${pW}%`;
+        document.getElementById('labelBad').innerHTML = `<span style="color:var(--danger)">●</span> ${isEn?'Bad':'不良'} ${pB}%`;
     }
 
     function activateAirbag(state) {
-        isAirbagActive = true;
-        SoundEngine.alert();
-        holoMatrix.style.opacity = '1';
-        smartZones.style.opacity = '1';
-        
+        isAirbagActive = true; SoundEngine.alert();
+        document.getElementById('holoMatrix').style.opacity = '1'; document.getElementById('smartZones').style.opacity = '1';
         let label = "標準";
         if (state === 'tilt-right') {
-            label = "重心嚴重右傾";
-            sysAlert.innerText = "⚠ 右側氣囊加壓補償中";
-            document.getElementById('hc6').classList.add('alert'); document.getElementById('hc9').classList.add('alert');
+            label = "嚴重右傾"; document.getElementById('hc6').classList.add('alert'); document.getElementById('hc9').classList.add('alert');
             document.getElementById('zb4').style.transform = "scaleY(1.5)"; document.getElementById('zb5').style.transform = "scaleY(1.8)";
         } else if (state === 'tilt-left') {
-            label = "重心嚴重左傾";
-            sysAlert.innerText = "⚠ 左側氣囊加壓補償中";
-            document.getElementById('hc4').classList.add('alert'); document.getElementById('hc7').classList.add('alert');
+            label = "嚴重左傾"; document.getElementById('hc4').classList.add('alert'); document.getElementById('hc7').classList.add('alert');
             document.getElementById('zb1').style.transform = "scaleY(1.8)"; document.getElementById('zb2').style.transform = "scaleY(1.5)";
         } else if (state === 'forward') {
-            label = "烏龜頸/駝背";
-            sysAlert.innerText = "⚠ 腰靠主動推移支撐中";
-            document.getElementById('hc2').classList.add('alert');
-            chairLumbar.style.transform = "scaleX(1.8)";
+            label = "駝背/前傾"; document.getElementById('hc2').classList.add('alert'); document.getElementById('chairLumbar').style.transform = "scaleX(1.8)";
         }
-        
-        sysAlert.classList.add('alert');
-        document.getElementById('currentPostureLabel').innerText = label;
-        document.getElementById('currentPostureLabel').style.color = "#ff453a";
-        
-        interveneCount++;
-        document.getElementById('interveneCount').innerHTML = interveneCount + " <span>次</span>";
+        const isEn = document.getElementById('langSelect').value === 'en';
+        document.getElementById('sysAlert').innerText = isEn ? "⚠ Airbag Deploying" : "⚠ 氣囊加壓補償中";
+        document.getElementById('sysAlert').classList.add('alert');
+        document.getElementById('currentPostureLabel').innerText = isEn ? "Bad" : label;
+        document.getElementById('currentPostureLabel').style.color = "var(--danger)";
+        document.getElementById('interveneCount').innerText = ++interveneCount;
     }
 
     function deactivateAirbag() {
-        isAirbagActive = false;
-        SoundEngine.success();
-        
-        sysAlert.innerText = "系統聯動監控中 | 自動感測體態";
-        sysAlert.classList.remove('alert');
-        document.getElementById('currentPostureLabel').innerText = "標準居中";
-        document.getElementById('currentPostureLabel').style.color = "#fff";
-        
-        holoMatrix.style.opacity = '0';
-        smartZones.style.opacity = '0';
-        
+        isAirbagActive = false; SoundEngine.success();
+        const isEn = document.getElementById('langSelect').value === 'en';
+        document.getElementById('sysAlert').innerText = isEn ? "System Standby" : "系統聯動監控中 | 自動感測體態";
+        document.getElementById('sysAlert').classList.remove('alert');
+        document.getElementById('currentPostureLabel').innerText = isEn ? "Perfect" : "標準居中";
+        document.getElementById('currentPostureLabel').style.color = "var(--text-main)";
+        document.getElementById('holoMatrix').style.opacity = '0'; document.getElementById('smartZones').style.opacity = '0';
         for(let i=1; i<=9; i++) document.getElementById('hc'+i).classList.remove('alert');
         for(let i=1; i<=5; i++) document.getElementById('zb'+i).style.transform = "scaleY(0)";
-        
         updateControls(); 
     }
 
-    // ====== AI 攝影機邏輯 ======
+    // ==========================================
+    // 8. AI 相機與骨架辨識核心
+    // ==========================================
     const video = document.getElementById('webcam-video');
     const canvas = document.getElementById('webcam-canvas');
     const ctx = canvas.getContext('2d');
-    const btnStartAI = document.getElementById('btnStartAI');
-    const aiStatusText = document.getElementById('aiStatusText');
-    const webcamWrapper = document.getElementById('webcam-wrapper');
-    
-    let detector;
-    let isDetecting = false;
-    let currentStream = null;
-    let animationReqId = null;
+    let detector; let isDetecting = false; let currentStream = null; let animationReqId = null;
 
     async function toggleAIVision() {
+        const btnStartAI = document.getElementById('btnStartAI');
+        const aiStatusText = document.getElementById('aiStatusText');
+        const isEn = document.getElementById('langSelect').value === 'en';
+
         if (isDetecting) {
             isDetecting = false;
             if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; }
-            video.srcObject = null;
-            if (animationReqId) cancelAnimationFrame(animationReqId);
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            webcamWrapper.style.display = 'none';
-            btnStartAI.innerText = "啟動相機與動態補償";
-            btnStartAI.classList.remove("running");
-            aiStatusText.innerText = "已關閉"; aiStatusText.style.color = "#8e8e93";
-            sysAlert.innerText = "系統平衡待機中 | 手動調整模式";
-            
+            video.srcObject = null; if (animationReqId) cancelAnimationFrame(animationReqId);
+            ctx.clearRect(0, 0, canvas.width, canvas.height); document.getElementById('webcam-wrapper').style.display = 'none';
+            btnStartAI.innerText = isEn ? "Start Camera" : "啟動相機與動態補償"; btnStartAI.classList.remove("running");
+            aiStatusText.innerText = isEn ? "Off" : "已關閉"; aiStatusText.style.color = "var(--text-sub)";
+            document.getElementById('sysAlert').innerText = isEn ? "System Standby | Manual Mode" : "系統平衡待機中 | 手動調整模式";
             if(isAirbagActive) deactivateAirbag(); 
             return;
         }
 
-        btnStartAI.innerText = "⏳ 請求相機權限..."; 
-        btnStartAI.disabled = true;
-
+        btnStartAI.innerText = "⏳ Loading..."; btnStartAI.disabled = true;
         try {
             currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-            video.srcObject = currentStream;
-            webcamWrapper.style.display = 'block'; 
-            
-            btnStartAI.innerText = "🧠 下載 AI 模型中 (約需 3~5 秒)..."; 
-
-            await new Promise((res) => {
-                video.onloadedmetadata = () => { video.play().then(() => {
-                    video.width = video.videoWidth; video.height = video.videoHeight;
-                    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-                    res();
-                });};
-            });
-
-            await tf.ready();
-            detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING });
-
-            isDetecting = true;
-            btnStartAI.disabled = false;
-            btnStartAI.innerText = "🛑 關閉相機與動態補償"; 
-            btnStartAI.classList.add("running");
-            aiStatusText.innerText = "即時監控中"; aiStatusText.style.color = "#34c759";
-            sysAlert.innerText = "系統聯動監控中 | 自動感測體態";
-            
+            video.srcObject = currentStream; document.getElementById('webcam-wrapper').style.display = 'block'; 
+            await new Promise((res) => { video.onloadedmetadata = () => { video.play().then(() => { video.width = video.videoWidth; video.height = video.videoHeight; canvas.width = video.videoWidth; canvas.height = video.videoHeight; res(); });}; });
+            await tf.ready(); detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING });
+            isDetecting = true; btnStartAI.disabled = false;
+            btnStartAI.innerText = isEn ? "🛑 Stop Camera" : "🛑 關閉相機與動態補償"; btnStartAI.classList.add("running");
+            aiStatusText.innerText = isEn ? "Monitoring" : "即時監控中"; aiStatusText.style.color = "var(--success)";
+            document.getElementById('sysAlert').innerText = isEn ? "System Monitoring" : "系統聯動監控中 | 自動感測體態";
             detectPose();
-        } catch (error) {
-            console.error(error); alert("無法存取相機權限！"); 
-            btnStartAI.innerText = "❌ 啟動失敗"; btnStartAI.disabled = false;
-        }
+        } catch (error) { console.error(error); alert("Camera Error!"); btnStartAI.innerText = "❌ Error"; btnStartAI.disabled = false; }
     }
 
     async function detectPose() {
         if (!isDetecting) return;
-        const poses = await detector.estimatePoses(video);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (poses.length > 0) {
-            const keypoints = poses[0].keypoints;
-            drawSkeleton(keypoints);
-            analyzePosture(keypoints);
-        }
+        const poses = await detector.estimatePoses(video); ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (poses.length > 0) { const keypoints = poses[0].keypoints; drawSkeleton(keypoints); analyzePosture(keypoints); }
         animationReqId = requestAnimationFrame(detectPose);
     }
 
@@ -743,38 +797,22 @@
         const adjacent = poseDetection.util.getAdjacentPairs(poseDetection.SupportedModels.MoveNet);
         adjacent.forEach((pair) => {
             const p1 = keypoints[pair[0]], p2 = keypoints[pair[1]];
-            if (p1.score > 0.3 && p2.score > 0.3) {
-                ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
-                ctx.lineWidth = 4; ctx.strokeStyle = '#0a84ff'; ctx.stroke();
-            }
+            if (p1.score > 0.3 && p2.score > 0.3) { ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineWidth = 4; ctx.strokeStyle = 'var(--primary)'; ctx.stroke(); }
         });
-        keypoints.forEach(p => {
-            if (p.score > 0.3) { ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 2*Math.PI); ctx.fillStyle = '#fff'; ctx.fill(); }
-        });
+        keypoints.forEach(p => { if (p.score > 0.3) { ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 2*Math.PI); ctx.fillStyle = '#fff'; ctx.fill(); }});
     }
 
     function analyzePosture(keypoints) {
-        const nose = keypoints.find(k => k.name === 'nose');
-        const lShoulder = keypoints.find(k => k.name === 'left_shoulder');
-        const rShoulder = keypoints.find(k => k.name === 'right_shoulder');
-
+        const nose = keypoints.find(k => k.name === 'nose'); const lShoulder = keypoints.find(k => k.name === 'left_shoulder'); const rShoulder = keypoints.find(k => k.name === 'right_shoulder');
         if (nose && lShoulder && rShoulder && nose.score > 0.3 && lShoulder.score > 0.3 && rShoulder.score > 0.3) {
-            const tiltDiff = lShoulder.y - rShoulder.y; 
-            const neckDistance = ((lShoulder.y + rShoulder.y) / 2) - nose.y;
-
+            const tiltDiff = lShoulder.y - rShoulder.y; const neckDistance = ((lShoulder.y + rShoulder.y) / 2) - nose.y;
             let postureState = 'normal';
-            if (tiltDiff > 25) postureState = 'tilt-right'; 
-            else if (tiltDiff < -25) postureState = 'tilt-left';  
-            else if (neckDistance < 50) postureState = 'forward';    
-
+            if (tiltDiff > 25) postureState = 'tilt-right'; else if (tiltDiff < -25) postureState = 'tilt-left'; else if (neckDistance < 50) postureState = 'forward';    
             syncSystemData(postureState);
         }
     }
 
-    // 初始化設定
-    updateControls(false);
-    updateTemp(25);
-    scoreCircle.innerText = Math.round(currentScore);
+    updateControls(false); updateTemp(25);
 </script>
 
 </body>
