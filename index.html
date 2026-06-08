@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ALIGN.AI</title>
+    <title>ALIGN.AI - 終極完整版</title>
     
+    <!-- ====== 外部套件載入 ====== -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -25,17 +26,10 @@
             src: url('ChenYuluoyan-Thin-Monospaced.woff2') format('woff2');
             font-display: swap;
         }
-        @font-face {
-            font-family: 'Iansui';
-            src: url('Iansui094-Regular.woff2') format('woff2');
-            font-display: swap;
-        }
 
         /* ====== 核心變數系統 ====== */
         :root {
-            /* 全域字體變數，預設為系統字體 */
             --main-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            
             --bg-main: #1c1c1e;
             --bg-card: #2c2c2e;
             --bg-stage: #18181a;
@@ -65,7 +59,7 @@
 
         /* ====== 基礎重置 ====== */
         body { 
-            font-family: var(--main-font); /* 套用全域字體變數 */
+            font-family: var(--main-font); 
             background-color: #000; display: flex; justify-content: center; align-items: center; 
             min-height: 100vh; margin: 0; color: var(--text-main); transition: background-color 0.3s;
         }
@@ -89,7 +83,6 @@
         /* ====== UI 共通組件 ====== */
         .header { padding: 35px 20px 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-end; background-color: var(--bg-main); z-index: 20; }
         .brand-title { display: flex; align-items: center; gap: 8px; }
-        .brand-title img { height: 24px; border-radius: 4px; }
         .brand-title h1 { margin: 0; font-size: 24px; font-weight: bold; color: var(--text-main); }
         .header-info { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
         .real-time-clock { font-size: 16px; font-weight: bold; font-variant-numeric: tabular-nums; color: var(--text-main); }
@@ -105,8 +98,10 @@
         .nav-icon { font-size: 20px; }
 
         /* ====== 登入畫面 ====== */
-        .login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.5s; }
-        .login-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 24px; padding: 35px 25px; width: 75%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.5s; }
+        .login-card { text-align: center; width: 80%; }
+        .skip-btn { background: none; border: none; color: #6e6e73; font-size: 14px; margin-top: 25px; cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .skip-btn:hover { color: #f2f2f7; text-decoration: underline; }
 
         /* ====== 視覺舞台 ====== */
         .visual-stage { height: 330px; position: relative; background: var(--bg-stage); border-bottom: 1px solid var(--border-color); overflow: hidden; z-index: 10; display: flex; transition: height 0.4s ease; }
@@ -118,20 +113,25 @@
         .holo-cell { background: var(--primary-glow); border: 1px solid var(--primary); border-radius: 3px; }
         .holo-cell.alert { background: rgba(255, 69, 58, 0.6); border-color: var(--danger); }
 
-        .chair-group { position: absolute; bottom: 85px; left: 160px; transition: transform 0.3s ease; z-index: 10; }
+        /* ====== 椅子結構 ====== */
+        .chair-group { position: absolute; bottom: 110px; left: 160px; transition: transform 0.3s ease; z-index: 10; }
         .chair-back-wrapper { position: absolute; bottom: 0; left: -12px; width: 30px; height: 170px; transform-origin: bottom center; transition: transform 0.4s; z-index: 2; }
         .chair-headrest { position: absolute; bottom: 145px; left: -3px; width: 35px; height: 25px; background-color: var(--chair-base); border-radius: 12px; border: 2px solid rgba(0,0,0,0.1); z-index: 1; transition: 0.3s; }
         .chair-lumbar { position: absolute; bottom: 15px; left: 2px; width: 26px; height: 45px; background-color: rgba(0,0,0,0.2); border-radius: 8px; z-index: 3; transition: 0.3s; transform-origin: left center; }
         .chair-back { position: absolute; bottom: 0; left: 0; width: 30px; height: 140px; background-color: var(--chair-base); border-radius: 12px; border: 2px solid rgba(0,0,0,0.1); border-right: none; }
         .chair-armrest { position: absolute; bottom: 50px; left: 20px; width: 40px; height: 8px; background-color: #8e8e93; border-radius: 4px; z-index: 4; }
+        .chair-armrest-support { position: absolute; bottom: 20px; left: 25px; width: 8px; height: 35px; background-color: #f4f4f5; z-index: 3; }
         .chair-seat { position: absolute; bottom: 0; left: 0; width: 125px; height: 25px; background: var(--chair-base); border-radius: 12px; z-index: 2; }
         .chair-leg-main { position: absolute; top: 25px; left: 55px; width: 14px; height: 50px; background: #8e8e93; transition: height 0.3s; z-index: 1; }
         .chair-base { position: absolute; top: 75px; left: 20px; width: 85px; height: 12px; background-color: #555; border-radius: 6px; clip-path: polygon(10% 0, 90% 0, 100% 100%, 0% 100%); z-index: 2; transition: top 0.3s; }
-        
+        .chair-wheel { position: absolute; top: 85px; left: 25px; width: 12px; height: 12px; background-color: #38383a; border-radius: 50%; z-index: 1; transition: top 0.3s; box-shadow: 50px 0 0 #38383a; }
+
         .ambient-glow { position: absolute; bottom: -20px; left: -20px; width: 180px; height: 180px; border-radius: 50%; filter: blur(40px); opacity: 0; transition: 0.8s; z-index: 0; pointer-events: none; mix-blend-mode: screen; }
         body.light-mode .ambient-glow { mix-blend-mode: multiply; }
         .smart-zones { position: absolute; bottom: 25px; left: 10px; width: 105px; height: 20px; display: flex; gap: 3px; opacity: 0; z-index: 3; transition: 0.3s; align-items: flex-end; }
         .zone-bubble { flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; transform-origin: bottom; transform: scaleY(0); transition: 0.4s; opacity: 0.8;}
+        .physical-panel { position: absolute; bottom: -5px; left: 35px; width: 80px; height: 24px; background: linear-gradient(145deg, #2c2c2e, #18181a); border-radius: 6px; z-index: 6; display: flex; justify-content: space-evenly; align-items: center; padding: 0 4px; border: 1px solid #48484a; }
+        .panel-btn { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(145deg, #48484a, #2c2c2e); box-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
 
         /* ====== 控制面板 & 滑桿 ====== */
         .controls-scroll { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
@@ -159,8 +159,8 @@
         /* ====== 數據面板 ====== */
         .score-card { background: var(--bg-card); border-radius: 20px; padding: 25px; text-align: center; border: 1px solid var(--border-color); }
         .score-circle { width: 110px; height: 110px; border-radius: 50%; border: 8px solid var(--success); margin: 0 auto 15px; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: 700; color: var(--success); transition: 0.3s; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .stat-box { background: var(--bg-card); padding: 15px; border-radius: 16px; border: 1px solid var(--border-color); }
+        .stats-grid { display: grid; grid-template-columns: 1fr; gap: 15px; } 
+        .stat-box { background: var(--bg-card); padding: 15px; border-radius: 16px; border: 1px solid var(--border-color); text-align: center; }
         .stat-label { font-size: 12px; color: var(--text-sub); margin-bottom: 5px; }
         .stat-val { font-size: 20px; font-weight: 600; color: var(--text-main); }
         .distribution-bar { width: 100%; height: 10px; border-radius: 5px; display: flex; overflow: hidden; margin-top: 10px; background: var(--bg-main); }
@@ -172,9 +172,12 @@
 
         /* ====== 設置面板 ====== */
         .profile-header { display: flex; align-items: center; gap: 15px; padding-bottom: 10px; }
-        .profile-img { width: 60px; height: 60px; border-radius: 50%; background: var(--bg-main); object-fit: cover; border: 2px solid var(--primary); }
-        .profile-info h3 { margin: 0 0 4px 0; font-size: 18px; color: var(--text-main); }
+        .profile-img { width: 60px; height: 60px; border-radius: 50%; background: var(--bg-main); object-fit: cover; border: 2px solid var(--primary); cursor: pointer; transition: 0.2s; }
+        .profile-img:hover { filter: brightness(0.8); }
+        .profile-info h3 { margin: 0 0 4px 0; font-size: 18px; color: var(--text-main); cursor: pointer; transition: 0.2s; }
+        .profile-info h3:hover { color: var(--primary); }
         .profile-info p { margin: 0; font-size: 12px; color: var(--text-sub); }
+        .edit-icon { font-size: 12px; opacity: 0.5; margin-left: 4px; }
         
         .settings-list { display: flex; flex-direction: column; gap: 12px; }
         .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
@@ -195,17 +198,16 @@
 
 <div class="mobile-frame">
     
+    <!-- 開場登入畫面 -->
     <div id="login-overlay" class="login-overlay">
         <div class="login-card">
-            <h2 style="margin:0 0 10px 0; color:var(--text-main); font-size: 26px;">ALIGN<span style="color:var(--primary)">.AI</span></h2>
-            <p style="font-size:14px; color:var(--text-sub); margin-bottom: 30px; line-height:1.6;" data-i18n="login-desc">
-                連接您的雲端帳號，<br>同步健康數據與自動情境設定。
-            </p>
+            <h2 style="margin:0 0 30px 0; color:var(--text-main); font-size: 28px; font-weight: bold; letter-spacing: 2px;">ALIGN<span style="color:var(--primary)">.AI</span></h2>
             <div id="google-btn-container" style="min-height: 44px; display: flex; justify-content: center;"></div>
-            <button class="skip-btn" onclick="skipLogin()" data-i18n="guest-mode">訪客模式 Guest</button>
+            <button class="skip-btn" onclick="skipLogin()" data-i18n="guest-mode">不登入就繼續</button>
         </div>
     </div>
 
+    <!-- 頂部標題 -->
     <div class="header">
         <div class="brand-title">
             <h1 data-i18n="app-title">ALIGN.AI</h1>
@@ -216,6 +218,7 @@
         </div>
     </div>
 
+    <!-- 視覺舞台 -->
     <div class="visual-stage" id="visual-stage">
         <div class="webcam-wrapper" id="webcam-wrapper">
             <div class="webcam-label">AI Vision</div>
@@ -241,6 +244,9 @@
                     <div class="zone-bubble" id="zb3"></div><div class="zone-bubble" id="zb4"></div>
                     <div class="zone-bubble" id="zb5"></div>
                 </div>
+                <div class="physical-panel">
+                    <div class="panel-btn"></div><div class="panel-btn"></div><div class="panel-btn"></div>
+                </div>
             </div>
             <div class="chair-leg-main" id="chairLeg"></div>
             <div class="chair-base" id="chairBase"></div>
@@ -248,6 +254,7 @@
         </div>
     </div>
 
+    <!-- ====== 控制分頁 ====== -->
     <div id="tab-control" class="tab-content active">
         <div class="controls-scroll">
             <div class="system-alert-box" id="sysAlert" data-i18n="sys-standby">系統平衡待機中 | 手動調整模式</div>
@@ -289,6 +296,7 @@
         </div>
     </div>
 
+    <!-- ====== 數據分頁 ====== -->
     <div id="tab-data" class="tab-content">
         <div class="controls-scroll">
             <div class="control-header" style="margin-bottom: 5px;">
@@ -303,12 +311,8 @@
             
             <div class="stats-grid">
                 <div class="stat-box">
-                    <div class="stat-label" data-i18n="interventions">氣囊介入</div>
-                    <div class="stat-val" style="color: var(--primary);" id="interveneCount">0</div>
-                </div>
-                <div class="stat-box">
                     <div class="stat-label" data-i18n="current-posture">當前姿態</div>
-                    <div class="stat-val" style="font-size: 15px;" id="currentPostureLabel" data-i18n="posture-perfect">標準居中</div>
+                    <div class="stat-val" style="font-size: 18px; color: var(--success);" id="currentPostureLabel" data-i18n="posture-perfect">標準居中</div>
                 </div>
             </div>
 
@@ -333,12 +337,13 @@
         </div>
     </div>
 
+    <!-- ====== 設置分頁 ====== -->
     <div id="tab-settings" class="tab-content">
         <div class="controls-scroll">
             <div class="control-group profile-header">
-                <img src="https://via.placeholder.com/60/38383a/ffffff?text=U" alt="Avatar" class="profile-img" id="profileAvatar">
+                <img src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238e8e93'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Avatar" class="profile-img" id="profileAvatar" onclick="editAvatar()">
                 <div class="profile-info">
-                    <h3 id="profileName" data-i18n="guest">訪客</h3>
+                    <h3 id="profileName" onclick="editName()"><span data-i18n="guest-name">訪客</span><span class="edit-icon">✏️</span></h3>
                     <p id="profileEmail" data-i18n="not-synced">尚未綁定雲端帳號</p>
                 </div>
             </div>
@@ -350,7 +355,7 @@
                         <span class="setting-label" data-i18n="language">Language / 語言</span>
                         <select id="langSelect" onchange="changeLanguage(this.value)">
                             <option value="zh-TW">繁體中文</option>
-                            <option value="en">English (Basic)</option>
+                            <option value="en">English</option>
                         </select>
                     </div>
                     
@@ -360,7 +365,6 @@
                             <option value="system" data-i18n="font-system">系統預設</option>
                             <option value="jf-openhuninn" data-i18n="font-jf">jf 粉圓體</option>
                             <option value="chenyuluoyan" data-i18n="font-chen">辰宇落雁體</option>
-                            <option value="iansui" data-i18n="font-iansui">芫荽體</option>
                         </select>
                     </div>
 
@@ -401,6 +405,7 @@
         </div>
     </div>
 
+    <!-- 底部導覽 -->
     <div class="bottom-nav">
         <div class="nav-item active" id="nav-control" onclick="switchTab('control')"><span class="nav-icon">🎛️</span><span data-i18n="nav-control">控制</span></div>
         <div class="nav-item" id="nav-data" onclick="switchTab('data')"><span class="nav-icon">📊</span><span data-i18n="nav-data">數據</span></div>
@@ -429,31 +434,49 @@
     let myChart; 
     let currentScore = 100;
     let historyScores = [null, null, null, null, null, null, 100];
-    let interveneCount = 0;
     let badPostureTimer = 0;
     let isAirbagActive = false;
     let framesNormal = 1, framesWarn = 0, framesBad = 0;
 
     // ==========================================
-    // 2. 設置面板邏輯 (字體、主題、語言)
+    // 2. 個人資料編輯邏輯
+    // ==========================================
+    function editName() {
+        let currentName = document.getElementById('profileName').innerText.replace('✏️', '').trim();
+        let newName = prompt("請輸入新的暱稱：", currentName);
+        if(newName && newName.trim() !== "") {
+            document.getElementById('profileName').innerHTML = newName + '<span class="edit-icon">✏️</span>';
+            if(currentUserEmail) {
+                db.collection("users").doc(currentUserEmail).set({ name: newName }, { merge: true });
+            }
+        }
+    }
+
+    function editAvatar() {
+        let newPic = prompt("請貼上大頭貼圖片的網址 (URL)：");
+        if(newPic && newPic.trim() !== "") {
+            document.getElementById('profileAvatar').src = newPic;
+            if(currentUserEmail) {
+                db.collection("users").doc(currentUserEmail).set({ picture: newPic }, { merge: true });
+            }
+        }
+    }
+
+    // ==========================================
+    // 3. 設置面板邏輯 (字體、主題、語言)
     // ==========================================
     let isMuted = false;
     let globalVolume = 0.5;
 
-    // 🌟 這裡實作字體切換邏輯
     function changeFont(fontType) {
         SoundEngine.click();
         const root = document.documentElement;
-        
         switch(fontType) {
             case 'jf-openhuninn':
                 root.style.setProperty('--main-font', "'JF-OpenHuninn', sans-serif");
                 break;
             case 'chenyuluoyan':
                 root.style.setProperty('--main-font', "'ChenYuluoyan', sans-serif");
-                break;
-            case 'iansui':
-                root.style.setProperty('--main-font', "'Iansui', sans-serif");
                 break;
             case 'system':
             default:
@@ -482,18 +505,19 @@
 
     const i18n = {
         'en': {
-            'login-desc': 'Connect cloud account.<br>Sync data and settings.', 'guest-mode': 'Guest Mode', 'app-title': 'ALIGN.AI',
+            'guest-mode': 'Continue Without Logging In', 'app-title': 'ALIGN.AI',
             'status-ready': 'Ready', 'nav-control': 'Control', 'nav-data': 'Data', 'nav-settings': 'Settings',
             'sys-standby': 'System Standby | Manual Mode', 'ai-vision': 'AI Vision Link', 'off': 'Off', 'start-ai': 'Start Camera',
             'smart-mode': 'Smart Mode', 'read': 'Read', 'work': 'Work', 'relax': 'Relax', 'custom': 'Custom',
             'height': 'Seat Height', 'tilt': 'Back Tilt', 'lumbar': 'Lumbar Support', 'headrest': 'Headrest', 'temp': 'Temperature',
-            'data-center': '📊 Data Center', 'guest': 'Guest', 'realtime-score': 'Real-time Score', 'interventions': 'Airbag Used',
+            'data-center': '📊 Data Center', 'guest': 'Guest', 'realtime-score': 'Real-time Score',
             'current-posture': 'Current Posture', 'posture-perfect': 'Perfect', 'posture-dist': 'Today Posture Dist.',
             'good': 'Good', 'warn': 'Warning', 'bad': 'Bad', 'weekly-trend': 'Weekly Trend',
             'not-synced': 'Cloud not connected', 'preferences': 'Preferences', 'language': 'Language', 'dark-mode': 'Dark Mode',
             'theme-color': 'Theme Color', 'color-blue': 'Blue', 'color-green': 'Green', 'color-purple': 'Purple',
-            'audio-notif': 'Audio & Alerts', 'sound-fx': 'System Sound', 'volume': 'Volume', 'push-notif': 'Posture Alerts',
-            'font-style': 'Font Style', 'font-system': 'System Default', 'font-jf': 'jf OpenHuninn', 'font-chen': 'ChenYuluoyan', 'font-iansui': 'Iansui'
+            'audio-notif': 'Audio & Alerts', 'sound-fx': 'System Sound', 'volume': 'Volume',
+            'font-style': 'Font Style', 'font-system': 'System Default', 'font-jf': 'jf OpenHuninn', 'font-chen': 'ChenYuluoyan',
+            'guest-name': 'Guest'
         }
     };
     const defaultTexts = {}; 
@@ -507,7 +531,7 @@
     }
 
     // ==========================================
-    // 3. 基礎功能 (時鐘與音效)
+    // 4. 基礎功能 (時鐘與音效)
     // ==========================================
     function updateClock() {
         document.getElementById('clockDisplay').innerText = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -533,7 +557,7 @@
     document.body.addEventListener('click', () => { SoundEngine.init(); }, { once: true });
 
     // ==========================================
-    // 4. Google Auth & 雲端同步
+    // 5. Google Auth & 雲端同步
     // ==========================================
     window.onload = function () {
         google.accounts.id.initialize({
@@ -558,7 +582,7 @@
         document.getElementById('login-overlay').style.opacity = '0';
         setTimeout(() => document.getElementById('login-overlay').style.display = 'none', 500);
         
-        document.getElementById('profileName').innerText = payload.name;
+        document.getElementById('profileName').innerHTML = payload.name + '<span class="edit-icon">✏️</span>';
         document.getElementById('profileEmail').innerText = payload.email;
         document.getElementById('profileAvatar').src = payload.picture;
 
@@ -570,6 +594,9 @@
         db.collection("users").doc(currentUserEmail).get().then((doc) => {
             if (doc.exists) {
                 const data = doc.data();
+                if(data.name) document.getElementById('profileName').innerHTML = data.name + '<span class="edit-icon">✏️</span>';
+                if(data.picture) document.getElementById('profileAvatar').src = data.picture;
+                
                 if (data.historyScores) {
                     historyScores = data.historyScores;
                     currentScore = historyScores[6] || 100;
@@ -578,7 +605,7 @@
                 }
             } else {
                 db.collection("users").doc(currentUserEmail).set({
-                    name: payload.name, historyScores: historyScores, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    name: payload.name, picture: payload.picture, historyScores: historyScores, createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }
         });
@@ -592,7 +619,7 @@
     }
 
     // ==========================================
-    // 5. 圖表初始化 (Chart.js)
+    // 6. 圖表初始化 (Chart.js)
     // ==========================================
     function initChart() {
         const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
@@ -614,7 +641,7 @@
     }
 
     // ==========================================
-    // 6. 分頁與 UI 滑桿
+    // 7. 分頁與 UI 滑桿
     // ==========================================
     function switchTab(tab) {
         SoundEngine.click();
@@ -672,7 +699,7 @@
     }
 
     // ==========================================
-    // 7. AI 數據邏輯與 Firestore 同步
+    // 8. AI 數據邏輯與 Firestore 同步
     // ==========================================
     function syncSystemData(postureState) {
         if (postureState !== 'normal') {
@@ -697,7 +724,7 @@
         if (currentUserEmail && (now - lastFirestoreSyncTime > 5000)) {
             db.collection("users").doc(currentUserEmail).set({
                 historyScores: historyScores,
-                sessionData: { framesNormal: framesNormal, framesWarn: framesWarn, framesBad: framesBad, interveneCount: interveneCount },
+                sessionData: { framesNormal: framesNormal, framesWarn: framesWarn, framesBad: framesBad },
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
             lastFirestoreSyncTime = now;
@@ -731,7 +758,6 @@
         document.getElementById('sysAlert').classList.add('alert');
         document.getElementById('currentPostureLabel').innerText = isEn ? "Bad" : label;
         document.getElementById('currentPostureLabel').style.color = "var(--danger)";
-        document.getElementById('interveneCount').innerText = ++interveneCount;
     }
 
     function deactivateAirbag() {
@@ -740,7 +766,7 @@
         document.getElementById('sysAlert').innerText = isEn ? "System Standby" : "系統聯動監控中 | 自動感測體態";
         document.getElementById('sysAlert').classList.remove('alert');
         document.getElementById('currentPostureLabel').innerText = isEn ? "Perfect" : "標準居中";
-        document.getElementById('currentPostureLabel').style.color = "var(--text-main)";
+        document.getElementById('currentPostureLabel').style.color = "var(--success)";
         document.getElementById('holoMatrix').style.opacity = '0'; document.getElementById('smartZones').style.opacity = '0';
         for(let i=1; i<=9; i++) document.getElementById('hc'+i).classList.remove('alert');
         for(let i=1; i<=5; i++) document.getElementById('zb'+i).style.transform = "scaleY(0)";
@@ -748,7 +774,7 @@
     }
 
     // ==========================================
-    // 8. AI 相機與骨架辨識核心
+    // 9. AI 相機與骨架辨識核心
     // ==========================================
     const video = document.getElementById('webcam-video');
     const canvas = document.getElementById('webcam-canvas');
