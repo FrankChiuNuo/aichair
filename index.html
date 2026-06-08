@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ALIGN.AI</title>
+    <title>ALIGN.AI - 全平台自適應版</title>
     
-    <!-- ====== 外部套件載入 ====== -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,41 +15,22 @@
 
     <style>
         /* ====== 自訂字體載入 ====== */
-        @font-face {
-            font-family: 'JF-OpenHuninn';
-            src: url('jf-openhuninn-2.0.woff2') format('woff2');
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'ChenYuluoyan';
-            src: url('ChenYuluoyan-Thin-Monospaced.woff2') format('woff2');
-            font-display: swap;
-        }
+        @font-face { font-family: 'JF-OpenHuninn'; src: url('jf-openhuninn-2.0.woff2') format('woff2'); font-display: swap; }
+        @font-face { font-family: 'ChenYuluoyan'; src: url('ChenYuluoyan-Thin-Monospaced.woff2') format('woff2'); font-display: swap; }
 
         /* ====== 核心變數系統 ====== */
         :root {
             --main-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            --bg-main: #1c1c1e;
-            --bg-card: #2c2c2e;
-            --bg-stage: #18181a;
-            --text-main: #f2f2f7;
-            --text-sub: #8e8e93;
-            --border-color: #38383a;
-            --primary: #0a84ff; 
-            --primary-glow: rgba(10, 132, 255, 0.3);
-            --danger: #ff453a;
-            --warning: #ff9f0a;
-            --success: #34c759;
+            --bg-main: #1c1c1e; --bg-card: #2c2c2e; --bg-stage: #18181a;
+            --text-main: #f2f2f7; --text-sub: #8e8e93; --border-color: #38383a;
+            --primary: #0a84ff; --primary-glow: rgba(10, 132, 255, 0.3);
+            --danger: #ff453a; --warning: #ff9f0a; --success: #34c759;
             --chair-base: #e0d5c1;
         }
 
         body.light-mode {
-            --bg-main: #f2f2f7;
-            --bg-card: #ffffff;
-            --bg-stage: #e5e5ea;
-            --text-main: #1c1c1e;
-            --text-sub: #6e6e73;
-            --border-color: #d1d1d6;
+            --bg-main: #f2f2f7; --bg-card: #ffffff; --bg-stage: #e5e5ea;
+            --text-main: #1c1c1e; --text-sub: #6e6e73; --border-color: #d1d1d6;
             --chair-base: #d1c5b1;
         }
 
@@ -59,8 +39,8 @@
 
         /* ====== 基礎重置 ====== */
         body { 
-            font-family: var(--main-font); 
-            background-color: #000; display: flex; justify-content: center; align-items: center; 
+            font-family: var(--main-font); background-color: #000; 
+            display: flex; justify-content: center; align-items: center; 
             min-height: 100vh; margin: 0; color: var(--text-main); transition: background-color 0.3s;
         }
 
@@ -68,6 +48,7 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
 
+        /* ====== 手機版預設佈局 (Mobile First) ====== */
         .mobile-frame {
             width: 375px; height: 812px; background-color: var(--bg-main); border-radius: 40px;
             border: 8px solid #2c2c2e; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
@@ -98,29 +79,26 @@
         .nav-icon { font-size: 20px; }
 
         /* ====== 登入畫面 ====== */
-        .login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.5s; }
-        .login-card { text-align: center; width: 80%; }
+        .login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.5s; }
+        .login-card { text-align: center; width: 80%; max-width: 350px; background: var(--bg-card); padding: 40px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.5);}
         .skip-btn { background: none; border: none; color: #6e6e73; font-size: 14px; margin-top: 25px; cursor: pointer; transition: 0.2s; text-decoration: none; }
-        .skip-btn:hover { color: #f2f2f7; text-decoration: underline; }
+        .skip-btn:hover { color: var(--text-main); text-decoration: underline; }
 
-        /* ====== 視覺舞台與相機拖曳、縮放設定 ====== */
+        /* ====== 視覺舞台與相機 ====== */
         .visual-stage { height: 330px; position: relative; background: var(--bg-stage); border-bottom: 1px solid var(--border-color); overflow: hidden; z-index: 10; display: flex; transition: height 0.4s ease; }
         
         .webcam-wrapper { position: absolute; top: 15px; left: 15px; width: 100px; height: 133px; background: #000; border-radius: 12px; border: 2px solid var(--border-color); overflow: hidden; z-index: 50; display: none; cursor: grab; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .webcam-wrapper.dragging { cursor: grabbing; opacity: 0.9; }
-        
         .webcam-label { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 6px; font-size: 9px; color: var(--success); z-index: 20; pointer-events: none;}
         #webcam-video, #webcam-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); pointer-events: none;}
-
-        /* 縮放拉柄 */
         .resize-handle { position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; cursor: nwse-resize; z-index: 60; background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.4) 50%); border-bottom-right-radius: 10px; }
 
         .holo-matrix { position: absolute; top: 15px; right: 15px; width: 65px; height: 65px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px; background: rgba(28, 28, 30, 0.5); border: 1px solid var(--border-color); border-radius: 12px; transform: perspective(300px) rotateX(15deg) rotateY(-15deg); opacity: 0; transition: 0.4s; z-index: 15; }
         .holo-cell { background: var(--primary-glow); border: 1px solid var(--primary); border-radius: 3px; }
         .holo-cell.alert { background: rgba(255, 69, 58, 0.6); border-color: var(--danger); }
 
-        /* ====== 椅子結構 ====== */
-        .chair-group { position: absolute; bottom: 120px; left: 160px; transition: transform 0.3s ease; z-index: 10; }
+        /* ====== 椅子結構 (採用百分比置中) ====== */
+        .chair-group { position: absolute; bottom: 120px; left: 50%; margin-left: -62px; transition: transform 0.3s ease; z-index: 10; }
         .chair-back-wrapper { position: absolute; bottom: 0; left: -12px; width: 30px; height: 170px; transform-origin: bottom center; transition: transform 0.4s; z-index: 2; }
         .chair-headrest { position: absolute; bottom: 145px; left: -3px; width: 35px; height: 25px; background-color: var(--chair-base); border-radius: 12px; border: 2px solid rgba(0,0,0,0.1); z-index: 1; transition: 0.3s; }
         .chair-lumbar { position: absolute; bottom: 15px; left: 2px; width: 26px; height: 45px; background-color: rgba(0,0,0,0.2); border-radius: 8px; z-index: 3; transition: 0.3s; transform-origin: left center; }
@@ -140,8 +118,8 @@
         .panel-btn { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(145deg, #48484a, #2c2c2e); box-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
 
         /* ====== 控制面板 & 滑桿 ====== */
-        .controls-scroll { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .control-group { background: var(--bg-card); border-radius: 16px; padding: 18px; border: 1px solid var(--border-color); }
+        .controls-scroll { padding: 20px; display: flex; flex-direction: column; gap: 15px; height: 100%; box-sizing: border-box;}
+        .control-group { background: var(--bg-card); border-radius: 16px; padding: 18px; border: 1px solid var(--border-color); flex-shrink: 0;}
         .control-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .control-title { font-size: 14px; font-weight: 600; color: var(--text-main); }
         .control-val-display { font-size: 14px; color: var(--primary); font-weight: bold; font-variant-numeric: tabular-nums; }
@@ -173,8 +151,8 @@
         .dist-good { background: var(--success); transition: width 0.3s ease; }
         .dist-warn { background: var(--warning); transition: width 0.3s ease; }
         .dist-bad { background: var(--danger); transition: width 0.3s ease; }
-        .chart-container { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); }
-        .chart-wrapper { position: relative; height: 200px; width: 100%; }
+        .chart-container { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); flex: 1; display: flex; flex-direction: column; min-height: 250px;}
+        .chart-wrapper { position: relative; flex: 1; width: 100%; min-height: 0;}
 
         /* ====== 設置面板 ====== */
         .profile-header { display: flex; align-items: center; gap: 15px; padding-bottom: 10px; }
@@ -189,7 +167,6 @@
         .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
         .setting-item:last-child { border-bottom: none; }
         .setting-label { font-size: 14px; font-weight: 500; color: var(--text-main); }
-        
         select { background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 8px; font-size: 13px; outline: none; font-family: inherit; }
         
         .toggle-switch { position: relative; width: 44px; height: 24px; }
@@ -198,26 +175,66 @@
         .slider-toggle:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .4s; }
         input:checked + .slider-toggle { background-color: var(--primary); }
         input:checked + .slider-toggle:before { transform: translateX(20px); }
+
+        /* =========================================================
+           🌟 筆電/桌機自適應佈局 (Responsive Dashboard)
+           ========================================================= */
+        @media (min-width: 1024px) {
+            .mobile-frame {
+                width: 100vw; height: 100vh; max-width: none; border-radius: 0; border: none; box-shadow: none;
+                display: grid;
+                /* 三欄式佈局：左側設置(320px) | 中間視覺與控制(彈性) | 右側數據(380px) */
+                grid-template-columns: 320px 1fr 380px;
+                grid-template-rows: 75px auto 1fr;
+                grid-template-areas:
+                    "header header header"
+                    "settings visual data"
+                    "settings control data";
+                background-color: var(--bg-main);
+            }
+            
+            /* 導覽列與標題調整 */
+            .header { grid-area: header; border-bottom: 1px solid var(--border-color); padding: 0 40px; align-items: center; }
+            .bottom-nav { display: none; /* 隱藏手機版底部切換列 */ }
+
+            /* 強制顯示所有面板，覆寫 JS 的隱藏邏輯 */
+            .tab-content { display: flex !important; opacity: 1 !important; height: 100% !important; border-radius: 0; background: transparent; }
+            
+            /* 分配區塊位置 */
+            #tab-settings { grid-area: settings; border-right: 1px solid var(--border-color); background: var(--bg-card); }
+            #tab-control { grid-area: control; }
+            #tab-data { grid-area: data; border-left: 1px solid var(--border-color); background: var(--bg-card); }
+            
+            /* 視覺舞台特製 */
+            .visual-stage { 
+                grid-area: visual; 
+                height: 45vh !important; /* 佔據畫面中上部 */
+                border-bottom: 1px solid var(--border-color); 
+                opacity: 1 !important;
+                background: linear-gradient(to bottom, var(--bg-main), var(--bg-stage));
+            }
+
+            /* 內部間距優化 */
+            .controls-scroll { padding: 30px; }
+            .chair-group { bottom: 8vh; } /* 根據大螢幕微調椅子高度 */
+        }
     </style>
 </head>
 <body>
 
 <div class="mobile-frame">
-    
-    <!-- 開場登入畫面 -->
     <div id="login-overlay" class="login-overlay">
         <div class="login-card">
-<img src="logo.png" alt="Logo" style="height: 48px; margin-bottom: 15px; border-radius: 8px;">
+            <img src="logo.png" alt="Logo" onerror="this.style.display='none'" style="height: 48px; margin-bottom: 15px; border-radius: 8px;">
             <h2 style="margin:0 0 30px 0; color:var(--text-main); font-size: 28px; font-weight: bold; letter-spacing: 2px;">ALIGN<span style="color:var(--primary)">.AI</span></h2>
             <div id="google-btn-container" style="min-height: 44px; display: flex; justify-content: center;"></div>
             <button class="skip-btn" onclick="skipLogin()" data-i18n="guest-mode">不登入就繼續</button>
         </div>
     </div>
 
-    <!-- 頂部標題 -->
     <div class="header">
         <div class="brand-title">
-	<img src="logo.png" alt="Logo" style="height: 24px; object-fit: contain; border-radius: 4px;">
+            <img src="logo.png" alt="Logo" onerror="this.style.display='none'" style="height: 28px; border-radius: 6px;">
             <h1 data-i18n="app-title">ALIGN.AI</h1>
         </div>
         <div class="header-info">
@@ -226,9 +243,7 @@
         </div>
     </div>
 
-    <!-- 視覺舞台 -->
     <div class="visual-stage" id="visual-stage">
-        <!-- 💡 鏡頭區塊 (加入右下角拉柄) -->
         <div class="webcam-wrapper" id="webcam-wrapper">
             <div class="webcam-label">AI Vision</div>
             <video id="webcam-video" playsinline autoplay muted></video>
@@ -265,14 +280,13 @@
         </div>
     </div>
 
-    <!-- ====== 控制分頁 ====== -->
     <div id="tab-control" class="tab-content active">
         <div class="controls-scroll">
             <div class="system-alert-box" id="sysAlert" data-i18n="sys-standby">系統平衡待機中 | 手動調整模式</div>
 
             <div class="control-group">
                 <div class="control-header">
-                    <span class="control-title">📷 <span data-i18n="ai-vision">真人視覺體態聯動</span></span>
+                    <span class="control-title">👁️ <span data-i18n="ai-vision">真人視覺體態聯動</span></span>
                     <span class="control-val-display" id="aiStatusText" style="color: var(--text-sub);" data-i18n="off">已關閉</span>
                 </div>
                 <button class="btn-ai-start" id="btnStartAI" onclick="toggleAIVision()" data-i18n="start-ai">啟動相機與坐姿偵測</button>
@@ -288,7 +302,7 @@
                 </div>
             </div>
 
-            <div class="control-group">
+            <div class="control-group" style="margin-bottom: 30px;">
                 <div class="control-header"><span class="control-title" data-i18n="height">座椅高度</span><span class="control-val-display" id="heightVal">45 cm</span></div>
                 <input type="range" min="40" max="55" value="45" id="heightSlider" oninput="updateControls(true)">
 
@@ -307,12 +321,11 @@
         </div>
     </div>
 
-    <!-- ====== 數據分頁 ====== -->
     <div id="tab-data" class="tab-content">
         <div class="controls-scroll">
             <div class="control-header" style="margin-bottom: 5px;">
                 <span class="control-title" style="font-size: 18px;" data-i18n="data-center">📊 數據中心</span>
-                <span class="control-val-display" style="color: var(--text-sub); background: var(--bg-main); padding: 4px 8px; border-radius: 8px;" id="syncStatus" data-i18n="guest">訪客</span>
+                <span class="control-val-display" style="color: var(--text-sub); background: var(--bg-main); padding: 4px 8px; border-radius: 8px;" id="syncStatus" data-i18n="sync-status">尚未綁定雲端帳號</span>
             </div>
 
             <div class="score-card">
@@ -341,21 +354,20 @@
                 </div>
             </div>
 
-            <div class="chart-container">
+            <div class="chart-container" style="margin-bottom: 30px;">
                 <div class="control-title" style="margin-bottom: 15px;" data-i18n="weekly-trend">本週評分趨勢</div>
                 <div class="chart-wrapper"><canvas id="historyChart"></canvas></div>
             </div>
         </div>
     </div>
 
-    <!-- ====== 設置分頁 ====== -->
     <div id="tab-settings" class="tab-content">
         <div class="controls-scroll">
             <div class="control-group profile-header">
                 <img src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238e8e93'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Avatar" class="profile-img" id="profileAvatar" onclick="editAvatar()">
                 <div class="profile-info">
                     <h3 id="profileName" onclick="editName()"><span data-i18n="guest-name">訪客</span><span class="edit-icon">✏️</span></h3>
-                    <p id="profileEmail" data-i18n="not-synced">尚未綁定雲端帳號</p>
+                    <p id="profileEmail" data-i18n="sync-status">尚未綁定雲端帳號</p>
                 </div>
             </div>
 
@@ -417,7 +429,7 @@
                 </div>
             </div>
 
-            <div class="control-group">
+            <div class="control-group" style="margin-bottom: 30px;">
                 <div class="control-title" style="margin-bottom: 15px;" data-i18n="audio-notif">音效與通知</div>
                 <div class="settings-list">
                     <div class="setting-item">
@@ -436,7 +448,6 @@
         </div>
     </div>
 
-    <!-- 底部導覽 -->
     <div class="bottom-nav">
         <div class="nav-item active" id="nav-control" onclick="switchTab('control')"><span class="nav-icon">🎛️</span><span data-i18n="nav-control">控制</span></div>
         <div class="nav-item" id="nav-data" onclick="switchTab('data')"><span class="nav-icon">📊</span><span data-i18n="nav-data">數據</span></div>
@@ -495,13 +506,11 @@
     const wrapper = document.getElementById("webcam-wrapper");
     const resizer = document.getElementById("cam-resize-handle");
 
-    // -- 縮放邏輯 --
     resizer.addEventListener('mousedown', initResize);
     resizer.addEventListener('touchstart', initResize, { passive: false });
 
     function initResize(e) {
-        e.preventDefault();
-        e.stopPropagation(); // 防止觸發拖曳
+        e.preventDefault(); e.stopPropagation(); 
         isResizing = true;
         document.addEventListener('mousemove', resizeWrapper);
         document.addEventListener('touchmove', resizeWrapper, { passive: false });
@@ -516,12 +525,11 @@
         let rect = wrapper.getBoundingClientRect();
         let newWidth = clientX - rect.left;
         
-        // 限制相機大小範圍
         if (newWidth < 80) newWidth = 80;
-        if (newWidth > 250) newWidth = 250;
+        if (newWidth > 350) newWidth = 350; 
         
         wrapper.style.width = newWidth + 'px';
-        wrapper.style.height = (newWidth * 1.33) + 'px'; // 保持 3:4 比例
+        wrapper.style.height = (newWidth * 1.33) + 'px'; 
     }
 
     function stopResize() {
@@ -532,7 +540,6 @@
         document.removeEventListener('touchend', stopResize);
     }
 
-    // -- 拖曳邏輯 --
     dragElement(wrapper);
     function dragElement(elmnt) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
@@ -639,12 +646,16 @@
             'data-center': '📊 Data Center', 'guest': 'Guest', 'realtime-score': 'Real-time Score',
             'current-posture': 'Current Posture', 'posture-perfect': 'Perfect', 'posture-dist': 'Today Posture Dist.',
             'good': 'Good', 'warn': 'Warning', 'bad': 'Bad', 'weekly-trend': 'Weekly Trend',
-            'not-synced': 'Cloud not connected', 'preferences': 'Preferences', 'language': 'Language', 'dark-mode': 'Dark Mode',
+            'not-synced': 'Cloud not connected', 'synced': 'Cloud connected',
+            'preferences': 'Preferences', 'language': 'Language', 'dark-mode': 'Dark Mode',
             'theme-color': 'Theme Color', 'color-blue': 'Blue', 'color-green': 'Green', 'color-purple': 'Purple',
             'audio-notif': 'Audio & Alerts', 'sound-fx': 'System Sound', 'volume': 'Volume',
             'font-style': 'Font Style', 'font-system': 'System Default', 'font-jf': 'jf OpenHuninn', 'font-chen': 'ChenYuluoyan',
             'guest-name': 'Guest', 'cam-settings': '📷 Camera Settings', 'cam-visibility': 'Visibility Mode', 'cam-stage': 'Main Screen Only', 'cam-always': 'Always Overlay',
             'cam-drag': 'Allow Dragging'
+        },
+        'zh-TW': {
+            'not-synced': '尚未綁定雲端帳號', 'synced': '雲端已連線'
         }
     };
     const defaultTexts = {}; 
@@ -652,8 +663,15 @@
     function changeLanguage(lang) {
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
-            if (!defaultTexts[key]) defaultTexts[key] = el.innerHTML; 
-            el.innerHTML = lang === 'en' ? (i18n.en[key] || defaultTexts[key]) : defaultTexts[key];
+            if (key === 'sync-status') {
+                const statusKey = currentUserEmail ? 'synced' : 'not-synced';
+                el.innerHTML = i18n[lang][statusKey];
+            } else if (i18n[lang] && i18n[lang][key]) {
+                el.innerHTML = i18n[lang][key];
+            } else {
+                if (!defaultTexts[key]) defaultTexts[key] = el.innerHTML;
+                if (lang === 'zh-TW') el.innerHTML = defaultTexts[key];
+            }
         });
     }
 
@@ -710,13 +728,17 @@
         setTimeout(() => document.getElementById('login-overlay').style.display = 'none', 500);
         
         document.getElementById('profileName').innerHTML = payload.name + '<span class="edit-icon">✏️</span>';
-        document.getElementById('profileEmail').innerText = payload.email;
-        document.getElementById('profileAvatar').src = payload.picture;
-
+        
         const syncLabel = document.getElementById('syncStatus');
-        syncLabel.innerHTML = `✅ ${payload.name}`;
+        syncLabel.setAttribute('data-i18n', 'sync-status'); 
         syncLabel.style.color = "var(--success)";
         syncLabel.style.background = "rgba(52, 199, 89, 0.1)";
+
+        const emailEl = document.getElementById('profileEmail');
+        emailEl.setAttribute('data-i18n', 'sync-status');
+        
+        changeLanguage(document.getElementById('langSelect').value);
+        document.getElementById('profileAvatar').src = payload.picture;
 
         db.collection("users").doc(currentUserEmail).get().then((doc) => {
             if (doc.exists) {
@@ -724,7 +746,6 @@
                 if(data.name) document.getElementById('profileName').innerHTML = data.name + '<span class="edit-icon">✏️</span>';
                 if(data.picture) document.getElementById('profileAvatar').src = data.picture;
                 
-                // 載入歷史分數
                 if (data.historyScores) {
                     historyScores = data.historyScores;
                     currentScore = historyScores[6] || 100;
@@ -732,12 +753,11 @@
                     myChart.update();
                 }
                 
-                // 🌟 新增：載入累積幀數 (重整後恢復數據)
                 if (data.sessionData) {
                     framesNormal = data.sessionData.framesNormal || 1;
                     framesWarn = data.sessionData.framesWarn || 0;
                     framesBad = data.sessionData.framesBad || 0;
-                    updateDistributionUI(); // 重整後立刻更新顯示比例
+                    updateDistributionUI(); 
                 }
             } else {
                 db.collection("users").doc(currentUserEmail).set({
@@ -747,7 +767,6 @@
         });
     }
 
-    // 🌟 新增：UI 佔比更新函式
     function updateDistributionUI() {
         let total = framesNormal + framesWarn + framesBad;
         let pG = Math.round((framesNormal/total)*100);
@@ -770,6 +789,7 @@
         var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) { return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); }).join(''));
         return JSON.parse(jsonPayload);
     }
+
     // ==========================================
     // 6. 圖表初始化 (Chart.js)
     // ==========================================
@@ -793,27 +813,39 @@
     }
 
     // ==========================================
-    // 7. 分頁與 UI 滑桿
+    // 7. 分頁與 UI 滑桿 (自適應防呆)
     // ==========================================
     function switchTab(tab) {
         SoundEngine.click();
-        document.querySelectorAll('.tab-content, .nav-item').forEach(el => el.classList.remove('active'));
-        document.getElementById('tab-' + tab).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         document.getElementById('nav-' + tab).classList.add('active');
 
-        const vs = document.getElementById('visual-stage');
-        const camMode = document.getElementById('camDisplayMode').value;
-        const wrapper = document.getElementById('webcam-wrapper');
+        // 只有在手機版 (螢幕寬度 < 1024px) 才執行分頁隱藏顯示邏輯
+        if (window.innerWidth < 1024) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
 
-        if (tab !== 'control') { 
-            vs.style.height = '0px'; vs.style.opacity = '0'; 
-            if (camMode === 'stage-only' && isDetecting) wrapper.style.display = 'none';
-            setTimeout(() => { if(myChart) myChart.resize(); }, 400); 
-        } else { 
-            vs.style.height = '330px'; vs.style.opacity = '1'; 
-            if (camMode === 'stage-only' && isDetecting) wrapper.style.display = 'block';
+            const vs = document.getElementById('visual-stage');
+            const camMode = document.getElementById('camDisplayMode').value;
+            const wrapper = document.getElementById('webcam-wrapper');
+
+            if (tab !== 'control') { 
+                vs.style.height = '0px'; vs.style.opacity = '0'; 
+                if (camMode === 'stage-only' && isDetecting) wrapper.style.display = 'none';
+                setTimeout(() => { if(myChart) myChart.resize(); }, 400); 
+            } else { 
+                vs.style.height = '330px'; vs.style.opacity = '1'; 
+                if (camMode === 'stage-only' && isDetecting) wrapper.style.display = 'block';
+            }
         }
     }
+
+    // 視窗縮放監聽：確保在切換到桌機版時圖表不跑版
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 1024 && myChart) {
+            myChart.resize();
+        }
+    });
 
     function updateControls(isManual = false) {
         if(isManual) SoundEngine.tick();
@@ -892,13 +924,7 @@
         }
 
         if (postureState === 'normal') framesNormal++; else if (isAlertActive) framesBad++; else framesWarn++; 
-        let total = framesNormal + framesWarn + framesBad;
-        let pG = Math.round((framesNormal/total)*100); let pB = Math.round((framesBad/total)*100); let pW = 100 - pG - pB;
-        document.getElementById('barGood').style.width = pG + '%'; document.getElementById('barWarn').style.width = pW + '%'; document.getElementById('barBad').style.width = pB + '%';
-        const isEn = document.getElementById('langSelect').value === 'en';
-        document.getElementById('labelGood').innerHTML = `<span style="color:var(--success)">●</span> ${isEn?'Good':'標準'} ${pG}%`;
-        document.getElementById('labelWarn').innerHTML = `<span style="color:var(--warning)">●</span> ${isEn?'Warning':'偏移'} ${pW}%`;
-        document.getElementById('labelBad').innerHTML = `<span style="color:var(--danger)">●</span> ${isEn?'Bad':'不良'} ${pB}%`;
+        updateDistributionUI();
     }
 
     function triggerPostureAlert(state) {
@@ -971,7 +997,7 @@
             aiStatusText.innerText = isEn ? "Monitoring" : "即時監控中"; aiStatusText.style.color = "var(--success)";
             document.getElementById('sysAlert').innerText = isEn ? "System Monitoring" : "系統聯動監控中 | 自動感測體態";
             
-            if (document.getElementById('camDisplayMode').value === 'stage-only' && !document.getElementById('tab-control').classList.contains('active')) {
+            if (document.getElementById('camDisplayMode').value === 'stage-only' && window.innerWidth < 1024 && !document.getElementById('tab-control').classList.contains('active')) {
                 wrapper.style.display = 'none';
             }
 
