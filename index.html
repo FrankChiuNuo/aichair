@@ -103,18 +103,24 @@
         .skip-btn { background: none; border: none; color: #6e6e73; font-size: 14px; margin-top: 25px; cursor: pointer; transition: 0.2s; text-decoration: none; }
         .skip-btn:hover { color: #f2f2f7; text-decoration: underline; }
 
-        /* ====== 視覺舞台 ====== */
+        /* ====== 視覺舞台與相機拖曳、縮放設定 ====== */
         .visual-stage { height: 330px; position: relative; background: var(--bg-stage); border-bottom: 1px solid var(--border-color); overflow: hidden; z-index: 10; display: flex; transition: height 0.4s ease; }
-        .webcam-wrapper { position: absolute; top: 15px; left: 15px; width: 100px; height: 133px; background: #000; border-radius: 12px; border: 2px solid var(--border-color); overflow: hidden; z-index: 15; display: none; }
-        .webcam-label { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 6px; font-size: 9px; color: var(--success); z-index: 20; }
-        #webcam-video, #webcam-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        
+        .webcam-wrapper { position: absolute; top: 15px; left: 15px; width: 100px; height: 133px; background: #000; border-radius: 12px; border: 2px solid var(--border-color); overflow: hidden; z-index: 50; display: none; cursor: grab; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .webcam-wrapper.dragging { cursor: grabbing; opacity: 0.9; }
+        
+        .webcam-label { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 6px; font-size: 9px; color: var(--success); z-index: 20; pointer-events: none;}
+        #webcam-video, #webcam-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); pointer-events: none;}
+
+        /* 縮放拉柄 */
+        .resize-handle { position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; cursor: nwse-resize; z-index: 60; background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.4) 50%); border-bottom-right-radius: 10px; }
 
         .holo-matrix { position: absolute; top: 15px; right: 15px; width: 65px; height: 65px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px; background: rgba(28, 28, 30, 0.5); border: 1px solid var(--border-color); border-radius: 12px; transform: perspective(300px) rotateX(15deg) rotateY(-15deg); opacity: 0; transition: 0.4s; z-index: 15; }
         .holo-cell { background: var(--primary-glow); border: 1px solid var(--primary); border-radius: 3px; }
         .holo-cell.alert { background: rgba(255, 69, 58, 0.6); border-color: var(--danger); }
 
         /* ====== 椅子結構 ====== */
-        .chair-group { position: absolute; bottom: 110px; left: 160px; transition: transform 0.3s ease; z-index: 10; }
+        .chair-group { position: absolute; bottom: 120px; left: 160px; transition: transform 0.3s ease; z-index: 10; }
         .chair-back-wrapper { position: absolute; bottom: 0; left: -12px; width: 30px; height: 170px; transform-origin: bottom center; transition: transform 0.4s; z-index: 2; }
         .chair-headrest { position: absolute; bottom: 145px; left: -3px; width: 35px; height: 25px; background-color: var(--chair-base); border-radius: 12px; border: 2px solid rgba(0,0,0,0.1); z-index: 1; transition: 0.3s; }
         .chair-lumbar { position: absolute; bottom: 15px; left: 2px; width: 26px; height: 45px; background-color: rgba(0,0,0,0.2); border-radius: 8px; z-index: 3; transition: 0.3s; transform-origin: left center; }
@@ -220,11 +226,14 @@
 
     <!-- 視覺舞台 -->
     <div class="visual-stage" id="visual-stage">
+        <!-- 💡 鏡頭區塊 (加入右下角拉柄) -->
         <div class="webcam-wrapper" id="webcam-wrapper">
             <div class="webcam-label">AI Vision</div>
             <video id="webcam-video" playsinline autoplay muted></video>
             <canvas id="webcam-canvas"></canvas>
+            <div class="resize-handle" id="cam-resize-handle"></div>
         </div>
+        
         <div class="holo-matrix" id="holoMatrix">
             <div class="holo-cell" id="hc1"></div><div class="holo-cell" id="hc2"></div><div class="holo-cell" id="hc3"></div>
             <div class="holo-cell" id="hc4"></div><div class="holo-cell" id="hc5"></div><div class="holo-cell" id="hc6"></div>
@@ -264,7 +273,7 @@
                     <span class="control-title">👁️ <span data-i18n="ai-vision">真人視覺體態聯動</span></span>
                     <span class="control-val-display" id="aiStatusText" style="color: var(--text-sub);" data-i18n="off">已關閉</span>
                 </div>
-                <button class="btn-ai-start" id="btnStartAI" onclick="toggleAIVision()" data-i18n="start-ai">啟動相機與動態補償</button>
+                <button class="btn-ai-start" id="btnStartAI" onclick="toggleAIVision()" data-i18n="start-ai">啟動相機與坐姿偵測</button>
             </div>
 
             <div class="control-group">
@@ -284,7 +293,7 @@
                 <div class="control-header"><span class="control-title" data-i18n="tilt">椅背傾仰</span><span class="control-val-display" id="angleVal">95°</span></div>
                 <input type="range" min="90" max="135" value="95" id="angleSlider" oninput="updateControls(true)">
                 
-                <div class="control-header"><span class="control-title" data-i18n="lumbar">動態腰靠</span><span class="control-val-display" id="lumbarVal">40%</span></div>
+                <div class="control-header"><span class="control-title" data-i18n="lumbar">腰靠深度</span><span class="control-val-display" id="lumbarVal">40%</span></div>
                 <input type="range" min="0" max="100" value="40" id="lumbarSlider" oninput="updateControls(true)">
 
                 <div class="control-header"><span class="control-title" data-i18n="headrest">頸枕高度</span><span class="control-val-display" id="headVal">0 cm</span></div>
@@ -345,6 +354,26 @@
                 <div class="profile-info">
                     <h3 id="profileName" onclick="editName()"><span data-i18n="guest-name">訪客</span><span class="edit-icon">✏️</span></h3>
                     <p id="profileEmail" data-i18n="not-synced">尚未綁定雲端帳號</p>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title" style="margin-bottom: 15px;" data-i18n="cam-settings">📷 鏡頭顯示設定</div>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <span class="setting-label" data-i18n="cam-visibility">顯示模式</span>
+                        <select id="camDisplayMode" onchange="changeCamMode(this.value)">
+                            <option value="stage-only" data-i18n="cam-stage">僅主畫面</option>
+                            <option value="always-on" data-i18n="cam-always">全域懸浮</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label" data-i18n="cam-drag">允許拖曳鏡頭</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="camDragToggle" checked onchange="toggleCamDrag(this.checked)">
+                            <span class="slider-toggle"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -435,20 +464,18 @@
     let currentScore = 100;
     let historyScores = [null, null, null, null, null, null, 100];
     let badPostureTimer = 0;
-    let isAirbagActive = false;
+    let isAlertActive = false;
     let framesNormal = 1, framesWarn = 0, framesBad = 0;
 
     // ==========================================
-    // 2. 個人資料編輯邏輯
+    // 2. 個人資料與相機顯示設定邏輯
     // ==========================================
     function editName() {
         let currentName = document.getElementById('profileName').innerText.replace('✏️', '').trim();
         let newName = prompt("請輸入新的暱稱：", currentName);
         if(newName && newName.trim() !== "") {
             document.getElementById('profileName').innerHTML = newName + '<span class="edit-icon">✏️</span>';
-            if(currentUserEmail) {
-                db.collection("users").doc(currentUserEmail).set({ name: newName }, { merge: true });
-            }
+            if(currentUserEmail) db.collection("users").doc(currentUserEmail).set({ name: newName }, { merge: true });
         }
     }
 
@@ -456,9 +483,112 @@
         let newPic = prompt("請貼上大頭貼圖片的網址 (URL)：");
         if(newPic && newPic.trim() !== "") {
             document.getElementById('profileAvatar').src = newPic;
-            if(currentUserEmail) {
-                db.collection("users").doc(currentUserEmail).set({ picture: newPic }, { merge: true });
-            }
+            if(currentUserEmail) db.collection("users").doc(currentUserEmail).set({ picture: newPic }, { merge: true });
+        }
+    }
+
+    // 🌟 鏡頭拖曳與角落縮放邏輯
+    let isDraggable = true;
+    let isResizing = false;
+    const wrapper = document.getElementById("webcam-wrapper");
+    const resizer = document.getElementById("cam-resize-handle");
+
+    // -- 縮放邏輯 --
+    resizer.addEventListener('mousedown', initResize);
+    resizer.addEventListener('touchstart', initResize, { passive: false });
+
+    function initResize(e) {
+        e.preventDefault();
+        e.stopPropagation(); // 防止觸發拖曳
+        isResizing = true;
+        document.addEventListener('mousemove', resizeWrapper);
+        document.addEventListener('touchmove', resizeWrapper, { passive: false });
+        document.addEventListener('mouseup', stopResize);
+        document.addEventListener('touchend', stopResize);
+    }
+
+    function resizeWrapper(e) {
+        if (!isResizing) return;
+        e.preventDefault();
+        let clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+        let rect = wrapper.getBoundingClientRect();
+        let newWidth = clientX - rect.left;
+        
+        // 限制相機大小範圍
+        if (newWidth < 80) newWidth = 80;
+        if (newWidth > 250) newWidth = 250;
+        
+        wrapper.style.width = newWidth + 'px';
+        wrapper.style.height = (newWidth * 1.33) + 'px'; // 保持 3:4 比例
+    }
+
+    function stopResize() {
+        isResizing = false;
+        document.removeEventListener('mousemove', resizeWrapper);
+        document.removeEventListener('touchmove', resizeWrapper);
+        document.removeEventListener('mouseup', stopResize);
+        document.removeEventListener('touchend', stopResize);
+    }
+
+    // -- 拖曳邏輯 --
+    dragElement(wrapper);
+    function dragElement(elmnt) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        elmnt.onmousedown = dragMouseDown;
+        elmnt.ontouchstart = dragMouseDown;
+
+        function dragMouseDown(e) {
+            if (!isDraggable || e.target === resizer) return;
+            e = e || window.event;
+            if (e.type.includes('mouse')) e.preventDefault();
+            pos3 = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            pos4 = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            document.onmouseup = closeDragElement;
+            document.ontouchend = closeDragElement;
+            document.onmousemove = elementDrag;
+            document.ontouchmove = elementDrag;
+            elmnt.classList.add('dragging');
+        }
+
+        function elementDrag(e) {
+            if (!isDraggable) return;
+            e = e || window.event;
+            let clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            let clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            pos1 = pos3 - clientX;
+            pos2 = pos4 - clientY;
+            pos3 = clientX;
+            pos4 = clientY;
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null; document.ontouchend = null;
+            document.onmousemove = null; document.ontouchmove = null;
+            elmnt.classList.remove('dragging');
+        }
+    }
+
+    function toggleCamDrag(allow) {
+        isDraggable = allow;
+        wrapper.style.cursor = allow ? 'grab' : 'default';
+    }
+
+    function changeCamMode(mode) {
+        const mobileFrame = document.querySelector('.mobile-frame');
+        const visualStage = document.getElementById('visual-stage');
+
+        if (mode === 'always-on') {
+            mobileFrame.appendChild(wrapper);
+            wrapper.style.top = '100px'; 
+            wrapper.style.left = '15px';
+            wrapper.style.zIndex = '1000'; 
+        } else {
+            visualStage.appendChild(wrapper);
+            wrapper.style.top = '15px';
+            wrapper.style.left = '15px';
+            wrapper.style.zIndex = '50';
         }
     }
 
@@ -472,16 +602,10 @@
         SoundEngine.click();
         const root = document.documentElement;
         switch(fontType) {
-            case 'jf-openhuninn':
-                root.style.setProperty('--main-font', "'JF-OpenHuninn', sans-serif");
-                break;
-            case 'chenyuluoyan':
-                root.style.setProperty('--main-font', "'ChenYuluoyan', sans-serif");
-                break;
+            case 'jf-openhuninn': root.style.setProperty('--main-font', "'JF-OpenHuninn', sans-serif"); break;
+            case 'chenyuluoyan': root.style.setProperty('--main-font', "'ChenYuluoyan', sans-serif"); break;
             case 'system':
-            default:
-                root.style.setProperty('--main-font', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif');
-                break;
+            default: root.style.setProperty('--main-font', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'); break;
         }
     }
 
@@ -507,9 +631,9 @@
         'en': {
             'guest-mode': 'Continue Without Logging In', 'app-title': 'ALIGN.AI',
             'status-ready': 'Ready', 'nav-control': 'Control', 'nav-data': 'Data', 'nav-settings': 'Settings',
-            'sys-standby': 'System Standby | Manual Mode', 'ai-vision': 'AI Vision Link', 'off': 'Off', 'start-ai': 'Start Camera',
+            'sys-standby': 'System Standby | Manual Mode', 'ai-vision': 'AI Vision Link', 'off': 'Off', 'start-ai': 'Start Posture Detection',
             'smart-mode': 'Smart Mode', 'read': 'Read', 'work': 'Work', 'relax': 'Relax', 'custom': 'Custom',
-            'height': 'Seat Height', 'tilt': 'Back Tilt', 'lumbar': 'Lumbar Support', 'headrest': 'Headrest', 'temp': 'Temperature',
+            'height': 'Seat Height', 'tilt': 'Back Tilt', 'lumbar': 'Lumbar Depth', 'headrest': 'Headrest', 'temp': 'Temperature',
             'data-center': '📊 Data Center', 'guest': 'Guest', 'realtime-score': 'Real-time Score',
             'current-posture': 'Current Posture', 'posture-perfect': 'Perfect', 'posture-dist': 'Today Posture Dist.',
             'good': 'Good', 'warn': 'Warning', 'bad': 'Bad', 'weekly-trend': 'Weekly Trend',
@@ -517,7 +641,8 @@
             'theme-color': 'Theme Color', 'color-blue': 'Blue', 'color-green': 'Green', 'color-purple': 'Purple',
             'audio-notif': 'Audio & Alerts', 'sound-fx': 'System Sound', 'volume': 'Volume',
             'font-style': 'Font Style', 'font-system': 'System Default', 'font-jf': 'jf OpenHuninn', 'font-chen': 'ChenYuluoyan',
-            'guest-name': 'Guest'
+            'guest-name': 'Guest', 'cam-settings': '📷 Camera Settings', 'cam-visibility': 'Visibility Mode', 'cam-stage': 'Main Screen Only', 'cam-always': 'Always Overlay',
+            'cam-drag': 'Allow Dragging'
         }
     };
     const defaultTexts = {}; 
@@ -597,11 +722,20 @@
                 if(data.name) document.getElementById('profileName').innerHTML = data.name + '<span class="edit-icon">✏️</span>';
                 if(data.picture) document.getElementById('profileAvatar').src = data.picture;
                 
+                // 載入歷史分數
                 if (data.historyScores) {
                     historyScores = data.historyScores;
                     currentScore = historyScores[6] || 100;
                     document.getElementById('scoreCircle').innerText = Math.round(currentScore);
                     myChart.update();
+                }
+                
+                // 🌟 新增：載入累積幀數 (重整後恢復數據)
+                if (data.sessionData) {
+                    framesNormal = data.sessionData.framesNormal || 1;
+                    framesWarn = data.sessionData.framesWarn || 0;
+                    framesBad = data.sessionData.framesBad || 0;
+                    updateDistributionUI(); // 重整後立刻更新顯示比例
                 }
             } else {
                 db.collection("users").doc(currentUserEmail).set({
@@ -611,13 +745,29 @@
         });
     }
 
+    // 🌟 新增：UI 佔比更新函式
+    function updateDistributionUI() {
+        let total = framesNormal + framesWarn + framesBad;
+        let pG = Math.round((framesNormal/total)*100);
+        let pB = Math.round((framesBad/total)*100);
+        let pW = 100 - pG - pB;
+        
+        document.getElementById('barGood').style.width = pG + '%';
+        document.getElementById('barWarn').style.width = pW + '%';
+        document.getElementById('barBad').style.width = pB + '%';
+        
+        const isEn = document.getElementById('langSelect').value === 'en';
+        document.getElementById('labelGood').innerHTML = `<span style="color:var(--success)">●</span> ${isEn?'Good':'標準'} ${pG}%`;
+        document.getElementById('labelWarn').innerHTML = `<span style="color:var(--warning)">●</span> ${isEn?'Warning':'偏移'} ${pW}%`;
+        document.getElementById('labelBad').innerHTML = `<span style="color:var(--danger)">●</span> ${isEn?'Bad':'不良'} ${pB}%`;
+    }
+
     function parseJwt(token) {
         var base64Url = token.split('.')[1];
         var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) { return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); }).join(''));
         return JSON.parse(jsonPayload);
     }
-
     // ==========================================
     // 6. 圖表初始化 (Chart.js)
     // ==========================================
@@ -650,8 +800,17 @@
         document.getElementById('nav-' + tab).classList.add('active');
 
         const vs = document.getElementById('visual-stage');
-        if (tab !== 'control') { vs.style.height = '0px'; vs.style.opacity = '0'; setTimeout(() => { if(myChart) myChart.resize(); }, 400); } 
-        else { vs.style.height = '330px'; vs.style.opacity = '1'; }
+        const camMode = document.getElementById('camDisplayMode').value;
+        const wrapper = document.getElementById('webcam-wrapper');
+
+        if (tab !== 'control') { 
+            vs.style.height = '0px'; vs.style.opacity = '0'; 
+            if (camMode === 'stage-only' && isDetecting) wrapper.style.display = 'none';
+            setTimeout(() => { if(myChart) myChart.resize(); }, 400); 
+        } else { 
+            vs.style.height = '330px'; vs.style.opacity = '1'; 
+            if (camMode === 'stage-only' && isDetecting) wrapper.style.display = 'block';
+        }
     }
 
     function updateControls(isManual = false) {
@@ -670,7 +829,7 @@
         
         const lumbar = document.getElementById('lumbarSlider').value;
         document.getElementById('lumbarVal').innerText = lumbar + '%';
-        if (!isAirbagActive) document.getElementById('chairLumbar').style.transform = `scaleX(${1 + (lumbar / 100) * 0.8})`;
+        if (!isAlertActive) document.getElementById('chairLumbar').style.transform = `scaleX(${1 + (lumbar / 100) * 0.8})`;
 
         const head = document.getElementById('headSlider').value;
         document.getElementById('headVal').innerText = head + ' cm';
@@ -704,10 +863,10 @@
     function syncSystemData(postureState) {
         if (postureState !== 'normal') {
             currentScore = Math.max(0, currentScore - 0.2); badPostureTimer++;
-            if (!isAirbagActive && badPostureTimer > 15) activateAirbag(postureState);
+            if (!isAlertActive && badPostureTimer > 15) triggerPostureAlert(postureState);
         } else {
             currentScore = Math.min(100, currentScore + 0.1); badPostureTimer = 0;
-            if (isAirbagActive) deactivateAirbag();
+            if (isAlertActive) clearPostureAlert();
         }
 
         let roundedScore = Math.round(currentScore);
@@ -730,7 +889,7 @@
             lastFirestoreSyncTime = now;
         }
 
-        if (postureState === 'normal') framesNormal++; else if (isAirbagActive) framesBad++; else framesWarn++; 
+        if (postureState === 'normal') framesNormal++; else if (isAlertActive) framesBad++; else framesWarn++; 
         let total = framesNormal + framesWarn + framesBad;
         let pG = Math.round((framesNormal/total)*100); let pB = Math.round((framesBad/total)*100); let pW = 100 - pG - pB;
         document.getElementById('barGood').style.width = pG + '%'; document.getElementById('barWarn').style.width = pW + '%'; document.getElementById('barBad').style.width = pB + '%';
@@ -740,28 +899,28 @@
         document.getElementById('labelBad').innerHTML = `<span style="color:var(--danger)">●</span> ${isEn?'Bad':'不良'} ${pB}%`;
     }
 
-    function activateAirbag(state) {
-        isAirbagActive = true; SoundEngine.alert();
+    function triggerPostureAlert(state) {
+        isAlertActive = true; SoundEngine.alert();
         document.getElementById('holoMatrix').style.opacity = '1'; document.getElementById('smartZones').style.opacity = '1';
         let label = "標準";
         if (state === 'tilt-right') {
-            label = "嚴重右傾"; document.getElementById('hc6').classList.add('alert'); document.getElementById('hc9').classList.add('alert');
+            label = "重心右傾"; document.getElementById('hc6').classList.add('alert'); document.getElementById('hc9').classList.add('alert');
             document.getElementById('zb4').style.transform = "scaleY(1.5)"; document.getElementById('zb5').style.transform = "scaleY(1.8)";
         } else if (state === 'tilt-left') {
-            label = "嚴重左傾"; document.getElementById('hc4').classList.add('alert'); document.getElementById('hc7').classList.add('alert');
+            label = "重心左傾"; document.getElementById('hc4').classList.add('alert'); document.getElementById('hc7').classList.add('alert');
             document.getElementById('zb1').style.transform = "scaleY(1.8)"; document.getElementById('zb2').style.transform = "scaleY(1.5)";
         } else if (state === 'forward') {
             label = "駝背/前傾"; document.getElementById('hc2').classList.add('alert'); document.getElementById('chairLumbar').style.transform = "scaleX(1.8)";
         }
         const isEn = document.getElementById('langSelect').value === 'en';
-        document.getElementById('sysAlert').innerText = isEn ? "⚠ Airbag Deploying" : "⚠ 氣囊加壓補償中";
+        document.getElementById('sysAlert').innerText = isEn ? "⚠ Posture Alert: Please Adjust" : "⚠ 偵測到坐姿偏移，請調整";
         document.getElementById('sysAlert').classList.add('alert');
         document.getElementById('currentPostureLabel').innerText = isEn ? "Bad" : label;
         document.getElementById('currentPostureLabel').style.color = "var(--danger)";
     }
 
-    function deactivateAirbag() {
-        isAirbagActive = false; SoundEngine.success();
+    function clearPostureAlert() {
+        isAlertActive = false; SoundEngine.success();
         const isEn = document.getElementById('langSelect').value === 'en';
         document.getElementById('sysAlert').innerText = isEn ? "System Standby" : "系統聯動監控中 | 自動感測體態";
         document.getElementById('sysAlert').classList.remove('alert');
@@ -785,29 +944,35 @@
         const btnStartAI = document.getElementById('btnStartAI');
         const aiStatusText = document.getElementById('aiStatusText');
         const isEn = document.getElementById('langSelect').value === 'en';
+        const wrapper = document.getElementById('webcam-wrapper');
 
         if (isDetecting) {
             isDetecting = false;
             if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; }
             video.srcObject = null; if (animationReqId) cancelAnimationFrame(animationReqId);
-            ctx.clearRect(0, 0, canvas.width, canvas.height); document.getElementById('webcam-wrapper').style.display = 'none';
-            btnStartAI.innerText = isEn ? "Start Camera" : "啟動相機與動態補償"; btnStartAI.classList.remove("running");
+            ctx.clearRect(0, 0, canvas.width, canvas.height); wrapper.style.display = 'none';
+            btnStartAI.innerText = isEn ? "Start Posture Detection" : "啟動相機與坐姿偵測"; btnStartAI.classList.remove("running");
             aiStatusText.innerText = isEn ? "Off" : "已關閉"; aiStatusText.style.color = "var(--text-sub)";
             document.getElementById('sysAlert').innerText = isEn ? "System Standby | Manual Mode" : "系統平衡待機中 | 手動調整模式";
-            if(isAirbagActive) deactivateAirbag(); 
+            if(isAlertActive) clearPostureAlert(); 
             return;
         }
 
         btnStartAI.innerText = "⏳ Loading..."; btnStartAI.disabled = true;
         try {
             currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-            video.srcObject = currentStream; document.getElementById('webcam-wrapper').style.display = 'block'; 
+            video.srcObject = currentStream; wrapper.style.display = 'block'; 
             await new Promise((res) => { video.onloadedmetadata = () => { video.play().then(() => { video.width = video.videoWidth; video.height = video.videoHeight; canvas.width = video.videoWidth; canvas.height = video.videoHeight; res(); });}; });
             await tf.ready(); detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING });
             isDetecting = true; btnStartAI.disabled = false;
-            btnStartAI.innerText = isEn ? "🛑 Stop Camera" : "🛑 關閉相機與動態補償"; btnStartAI.classList.add("running");
+            btnStartAI.innerText = isEn ? "🛑 Stop Posture Detection" : "🛑 關閉相機與坐姿偵測"; btnStartAI.classList.add("running");
             aiStatusText.innerText = isEn ? "Monitoring" : "即時監控中"; aiStatusText.style.color = "var(--success)";
             document.getElementById('sysAlert').innerText = isEn ? "System Monitoring" : "系統聯動監控中 | 自動感測體態";
+            
+            if (document.getElementById('camDisplayMode').value === 'stage-only' && !document.getElementById('tab-control').classList.contains('active')) {
+                wrapper.style.display = 'none';
+            }
+
             detectPose();
         } catch (error) { console.error(error); alert("Camera Error!"); btnStartAI.innerText = "❌ Error"; btnStartAI.disabled = false; }
     }
